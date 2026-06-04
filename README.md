@@ -12,9 +12,7 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?logo=firebase&logoColor=black)
 ![Gemini AI](https://img.shields.io/badge/Gemini_AI-3.x-8E75C2?logo=googlegemini&logoColor=white)
 
-Asistente de escritura y diseño literario inteligente. Novel analiza automáticamente los capítulos de tu manuscrito utilizando Inteligencia Artificial para extraer personajes, lugares, elementos de lore y tejer un mapa interactivo de relaciones, consolidando una Biblia de Mundo dinámica y escalable.
-
-🌐 **[Ver Demo en Vivo](https://ai.studio/apps/c8e9c684-382d-4f6e-b1a7-4cde21fd9ac8)**
+Asistente de escritura y diseño literario inteligente. Novel analiza automáticamente los capítulos de tu manuscrito utilizando Inteligencia Artificial para extraer personajes, lugares, elementos de lore y tejer un mapa interactivo de relaciones, consolidando una Enciclopedia del Mundo dinámica y escalable.
 
 ---
 
