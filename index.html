@@ -1,0 +1,27 @@
+<!-- 
+  @license
+  SPDX-License-Identifier: Apache-2.0
+-->
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- Configuración para asegurar que la web se adapte de forma responsive a móviles -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- [CORREGIDO] Ruta absoluta del icono para producción (Vite copia los assets de /public a /) -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    
+    <title>Novel: Asistente Literario</title>
+  </head>
+  <body>
+    <!-- Contenedor único donde React inyecta todo el árbol virtual de componentes -->
+    <div id="root"></div>
+    
+    <!-- Script de inicialización de la app compilado bajo estándares ES Modules -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

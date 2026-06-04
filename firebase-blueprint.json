@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "novel": {
+      "title": "Novel",
+      "description": "Metadata for a novel project",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "coverImage": { "type": "string" },
+        "color": { "type": "string" },
+        "status": { "type": "string", "enum": ["En Desarrollo", "Finalizada"] },
+        "chapterCount": { "type": "number" }
+      },
+      "required": ["title", "authorId", "createdAt", "updatedAt"]
+    },
+    "chapter": {
+      "title": "Chapter",
+      "description": "A chapter of a novel",
+      "type": "object",
+      "properties": {
+        "novelId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "chapterNumber": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["novelId", "title", "content", "chapterNumber", "createdAt", "updatedAt"]
+    },
+    "worldEntity": {
+      "title": "World Entity",
+      "description": "A character, location or lore in the novel world",
+      "type": "object",
+      "properties": {
+        "novelId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["character", "location", "lore"] },
+        "summary": { "type": "string" },
+        "openQuestions": { "type": "string" },
+        "resolvedQuestions": { "type": "string" },
+        "isTypeLocked": { "type": "boolean" },
+        "lastUpdatedChapterId": { "type": "string" },
+        "lastUpdatedChapterTitle": { "type": "string" },
+        "firstUpdatedChapterId": { "type": "string" },
+        "firstUpdatedChapterTitle": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "headerColor": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["novelId", "name", "type", "summary", "updatedAt"]
+    },
+    "relationship": {
+      "title": "Relationship",
+      "description": "A link between two world entities",
+      "type": "object",
+      "properties": {
+        "novelId": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "targetId": { "type": "string" },
+        "sourceName": { "type": "string" },
+        "targetName": { "type": "string" },
+        "relationType": { "type": "string" },
+        "description": { "type": "string" },
+        "isUserDefined": { "type": "boolean" },
+        "isPending": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["novelId", "sourceId", "targetId", "relationType", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "novels": {
+      "schema": "novel",
+      "description": "Collection of novel projects"
+    },
+    "novels/{novelId}/chapters": {
+      "schema": "chapter",
+      "description": "Chapters belonging to a novel"
+    },
+    "novels/{novelId}/entities": {
+      "schema": "worldEntity",
+      "description": "Characters and locations discovered in the novel"
+    },
+    "novels/{novelId}/relationships": {
+      "schema": "relationship",
+      "description": "Links between characters or between characters and locations"
+    }
+  }
+}

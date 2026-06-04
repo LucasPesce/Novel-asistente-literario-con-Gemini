@@ -1,0 +1,149 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(authorId) {
+      return isSignedIn() && request.auth.uid == authorId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidNovel(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.authorId == request.auth.uid
+        && (data.createdAt is string && data.createdAt.size() <= 128)
+        && (data.updatedAt is string && data.updatedAt.size() <= 128)
+        && (!('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 2000000))
+        && (!('color' in data) || (data.color is string && data.color.size() <= 20))
+        && (!('status' in data) || (data.status in ['En Desarrollo', 'Finalizada']))
+        && (!('chapterCount' in data) || (data.chapterCount is number))
+        && data.keys().hasAll(['title', 'authorId', 'createdAt', 'updatedAt']);
+    }
+
+    function isValidChapter(data) {
+      return data.novelId is string && isValidId(data.novelId)
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 2000000
+        && data.chapterNumber is number
+        && (data.createdAt is string && data.createdAt.size() <= 128)
+        && (data.updatedAt is string && data.updatedAt.size() <= 128)
+        && data.keys().hasAll(['novelId', 'title', 'content', 'chapterNumber', 'createdAt', 'updatedAt']);
+    }
+
+    function isValidWorldEntity(data) {
+      return data.novelId is string && isValidId(data.novelId)
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.type in ['character', 'location', 'lore']
+        && data.summary is string && data.summary.size() <= 20000
+        && (data.updatedAt is string && data.updatedAt.size() <= 128)
+        && (!('openQuestions' in data) || (data.openQuestions is string && data.openQuestions.size() <= 20000))
+        && (!('resolvedQuestions' in data) || (data.resolvedQuestions is string && data.resolvedQuestions.size() <= 20000))
+        && (!('isTypeLocked' in data) || (data.isTypeLocked is bool))
+        && (!('status' in data) || (data.status is string && data.status.size() <= 100))
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 50))
+        && (!('headerColor' in data) || (data.headerColor is string && data.headerColor.size() <= 20))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 2000000))
+        && data.keys().hasAll(['novelId', 'name', 'type', 'summary', 'updatedAt']);
+    }
+
+    function isValidRelationship(data) {
+      return data.novelId is string && isValidId(data.novelId)
+        && data.sourceId is string && isValidId(data.sourceId)
+        && data.targetId is string && isValidId(data.targetId)
+        && data.relationType is string && data.relationType.size() <= 200
+        && (!('isUserDefined' in data) || (data.isUserDefined is bool))
+        && (!('isPending' in data) || (data.isPending is bool))
+        && (data.updatedAt is string && data.updatedAt.size() <= 128)
+        && data.keys().hasAll(['novelId', 'sourceId', 'targetId', 'sourceName', 'targetName', 'relationType', 'description', 'updatedAt']);
+    }
+
+    // --- Collections ---
+
+    match /novels/{novelId} {
+      allow read: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidNovel(incoming())
+        && isValidId(novelId)
+        && incoming().keys().size() <= 8; // Max 8 fields currently
+
+      allow update: if isSignedIn() 
+        && isOwner(existing().authorId) 
+        && isValidNovel(incoming())
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt;
+
+      allow delete: if isSignedIn() && isOwner(existing().authorId);
+
+      // Subcollections
+      
+      match /chapters/{chapterId} {
+        allow read: if isSignedIn() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+        
+        allow create: if isSignedIn() 
+          && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid
+          && isValidChapter(incoming());
+          
+        allow update: if isSignedIn() 
+          && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid
+          && isValidChapter(incoming())
+          && incoming().novelId == existing().novelId
+          && incoming().createdAt == existing().createdAt;
+          
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+      }
+
+      match /entities/{entityId} {
+        allow read: if isSignedIn() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+        
+        allow create: if isSignedIn() 
+          && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid
+          && isValidWorldEntity(incoming());
+
+        allow update: if isSignedIn() 
+          && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid
+          && isValidWorldEntity(incoming())
+          && incoming().novelId == existing().novelId;
+
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+      }
+
+      match /relationships/{relId} {
+        allow read: if isSignedIn() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+        
+        allow create: if isSignedIn() 
+          && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid
+          && isValidRelationship(incoming());
+
+        allow update: if isSignedIn() 
+          && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid
+          && isValidRelationship(incoming())
+          && incoming().novelId == existing().novelId;
+
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Novel World Architect",
+  "description": "An AI-powered writing assistant that automatically builds a world bible from your novel chapters, tracking characters, locations, and their evolving relationships.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
