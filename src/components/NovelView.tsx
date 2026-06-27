@@ -4,7 +4,7 @@ import { updateDoc, doc } from 'firebase/firestore';
 import {
   ChevronLeft, Plus, Users, MapPin, Share2, BookOpen, Trash2, Loader2,
   RefreshCw, Edit2, Save, X, Tag, Info, Flag, MessageSquare, Database,
-  FileText, Sparkles, Palette
+  FileText, Sparkles, Palette, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Novel, Chapter, WorldEntity, Relationship, EntityType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -154,21 +154,26 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
 
       if (confirm(`Se han detectado ${splitChapters.length} capítulos. ¿Deseas importarlos ahora?`)) {
         setIsSaving(true);
+
+        // Calcular el número base más alto actual
+        const regularChapters = chapters.filter(c => c.chapterNumber > 0);
+        let nextNumber = regularChapters.length > 0 ? Math.max(...regularChapters.map(c => c.chapterNumber)) + 1 : 1;
+
         for (let i = 0; i < splitChapters.length; i++) {
           const chap = splitChapters[i];
+
+          // Si la IA lo tituló como "Prólogo" y aún no tenemos uno, le asignamos el 0
+          const isChapPrologue = chap.title.toLowerCase().includes('prólogo') && !chapters.some(c => c.chapterNumber === 0) && i === 0;
+
+          let assignedNumber = isChapPrologue ? 0 : nextNumber;
+          if (!isChapPrologue) nextNumber++; // Sumamos al contador si no fue un prólogo
+
           await storageService.addChapter(!!isLocalMode, novel.id, {
             title: chap.title,
             content: chap.content,
-          }, chapters.length + i);
+          }, assignedNumber);
         }
         alert('Importación completada con éxito.');
-      }
-    } catch (error: any) {
-      if (error.message === 'API_KEY_MISSING') {
-        alert('Falta la API Key de Gemini. Haz clic en el ícono de la llave 🔑 en la barra superior para configurarla.');
-      } else {
-        console.error('Error importing document:', error);
-        alert('Error al importar el documento.');
       }
     } finally {
       setIsImporting(false);
@@ -188,7 +193,17 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
 
     try {
       setIsSaving(true);
-      const title = newChapter.title.trim() || (isPrologue ? 'Prólogo' : `Capítulo ${chapters.length + (chapters.some(c => c.chapterNumber === 0) ? 0 : 1)}`);
+
+      // 1. Calcular el número visual sugerido para el título por defecto
+      const hasPrologue = chapters.some(c => c.chapterNumber === 0);
+      const nextDisplayNumber = hasPrologue ? chapters.length : chapters.length + 1;
+      const title = newChapter.title.trim() || (isPrologue ? 'Prólogo' : `Capítulo ${nextDisplayNumber}`);
+
+      // 2. Calcular el número interno de ordenamiento para la base de datos (siempre va al final)
+      const regularChapters = chapters.filter(c => c.chapterNumber > 0);
+      const internalSortNumber = regularChapters.length > 0
+        ? Math.max(...regularChapters.map(c => c.chapterNumber)) + 1
+        : 1;
 
       if (editingChapterId) {
         await storageService.updateChapter(!!isLocalMode, novel.id, editingChapterId, {
@@ -199,8 +214,9 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
         await storageService.addChapter(!!isLocalMode, novel.id, {
           title: title,
           content: newChapter.content,
-        }, isPrologue ? 0 : chapters.length + (chapters.some(c => c.chapterNumber === 0) ? 0 : 1));
+        }, isPrologue ? 0 : internalSortNumber);
       }
+
       setNewChapter({ title: '', content: '' });
       setIsAddingChapter(false);
       setEditingChapterId(null);
@@ -211,6 +227,7 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
       setIsSaving(false);
     }
   };
+
 
   /**
    * Envía el manuscrito del capítulo a Gemini para extraer nuevos personajes, 
@@ -267,6 +284,40 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
     }
   };
 
+  /**
+     * Mueve un capítulo hacia arriba o abajo en la lista y guarda el nuevo orden.
+     */
+  const handleMoveChapter = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= chapters.length) return;
+
+    // Evitar que el prólogo se mueva hacia abajo o que un capítulo pase arriba del prólogo
+    if (chapters[index].chapterNumber === 0 && direction === 'down') return;
+    if (chapters[newIndex].chapterNumber === 0 && direction === 'up') return;
+
+    try {
+      setIsSaving(true);
+      const newChapters = [...chapters];
+      // Intercambiar posiciones
+      const temp = newChapters[index];
+      newChapters[index] = newChapters[newIndex];
+      newChapters[newIndex] = temp;
+
+      // Reasignar los números internos para mantener la matemática perfecta
+      const hasPrologue = newChapters.some(c => c.chapterNumber === 0);
+      newChapters.forEach((chap, i) => {
+        if (hasPrologue && i === 0) chap.chapterNumber = 0;
+        else chap.chapterNumber = hasPrologue ? i : i + 1;
+      });
+
+      setChapters(newChapters); // Optimistic update (se ve instantáneo)
+      await storageService.reorderChapters(!!isLocalMode, novel.id, newChapters);
+    } catch (error) {
+      console.error('Error reordering chapters:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   // --- OPERACIONES DE ENTIDADES DEL MUNDO ---
 
   /**
@@ -779,103 +830,134 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
 
               {/* Listado de Capítulos del Manuscrito */}
               <div className="space-y-4">
-                {chapters.map((chapter) => (
-                  <div
-                    key={chapter.id}
-                    onClick={() => !isAnalyzing && setReadingChapter(chapter)}
-                    className="bg-[#1a1715] rounded-3xl border border-white/5 p-8 shadow-xl hover:border-[#c2a884]/30 hover:bg-[#1e1a18] transition-all group cursor-pointer"
-                  >
-                    <div className="flex justify-between items-start mb-6">
-                      <div>
-                        <div className="text-xs font-black text-[#e8e4df] uppercase tracking-[0.2em] mb-2 px-3 py-1 bg-white/10 rounded-full w-fit">Capítulo {chapter.chapterNumber}</div>
-                        <h4 className="text-2xl font-bold text-[#e8e4df]">{chapter.title}</h4>
+                {chapters.map((chapter, index) => {
+                  // Calcular la etiqueta visual perfecta basada en la posición real de la lista
+                  const hasPrologue = chapters.length > 0 && chapters[0].chapterNumber === 0;
+                  const isThisPrologue = chapter.chapterNumber === 0;
+                  const displayNum = hasPrologue ? index : index + 1;
+                  const displayLabel = isThisPrologue ? 'Prólogo' : `Capítulo ${displayNum}`;
+
+                  return (
+                    <div
+                      key={chapter.id}
+                      onClick={() => !isAnalyzing && setReadingChapter(chapter)}
+                      className="bg-[#1a1715] rounded-3xl border border-white/5 p-8 shadow-xl hover:border-[#c2a884]/30 hover:bg-[#1e1a18] transition-all group cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <div className="text-xs font-black text-[#e8e4df] uppercase tracking-[0.2em] mb-2 px-3 py-1 bg-white/10 rounded-full w-fit">
+                            {displayLabel}
+                          </div>
+                          <h4 className="text-2xl font-bold text-[#e8e4df]">{chapter.title}</h4>
+                        </div>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {novel.status !== 'Finalizada' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAnalyze(chapter);
+                                }}
+                                disabled={!!isAnalyzing}
+                                className={cn(
+                                  "flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold",
+                                  isAnalyzing === chapter.id
+                                    ? "bg-[#9a7b4f]/10 text-[#9a7b4f]"
+                                    : "bg-white/5 text-[#6d5a4a] hover:text-[#e8e4df] hover:bg-white/10"
+                                )}
+                              >
+                                {isAnalyzing === chapter.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-4 h-4" />
+                                )}
+                                {isAnalyzing === chapter.id ? 'Analizando...' : 'Analizar con Novel'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setNewChapter({ title: chapter.title, content: chapter.content });
+                                  setEditingChapterId(chapter.id);
+                                  setIsPrologue(isThisPrologue);
+                                  setIsAddingChapter(true);
+                                }}
+                                disabled={!!isAnalyzing}
+                                className="p-3 bg-white/5 text-[#6d5a4a] hover:text-[#e8e4df] hover:bg-white/10 rounded-xl transition-all border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Editar capítulo"
+                              >
+                                <Edit2 className="w-5 h-5" />
+                              </button>
+                              {/* Botones de Reordenamiento */}
+                              {index > (chapters.some(c => c.chapterNumber === 0) ? 1 : 0) && chapter.chapterNumber !== 0 && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMoveChapter(index, 'up'); }}
+                                  disabled={!!isAnalyzing || isSaving}
+                                  className="p-3 bg-white/5 text-[#6d5a4a] hover:text-[#e8e4df] hover:bg-white/10 rounded-xl transition-all border border-white/5 disabled:opacity-30"
+                                  title="Mover arriba"
+                                >
+                                  <ArrowUp className="w-5 h-5" />
+                                </button>
+                              )}
+                              {index < chapters.length - 1 && chapter.chapterNumber !== 0 && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMoveChapter(index, 'down'); }}
+                                  disabled={!!isAnalyzing || isSaving}
+                                  className="p-3 bg-white/5 text-[#6d5a4a] hover:text-[#e8e4df] hover:bg-white/10 rounded-xl transition-all border border-white/5 disabled:opacity-30"
+                                  title="Mover abajo"
+                                >
+                                  <ArrowDown className="w-5 h-5" />
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleDeleteChapter(chapter.id);
+                                }}
+                                disabled={!!isAnalyzing}
+                                className={cn(
+                                  "p-3 rounded-xl transition-all shadow-lg hover:scale-110 active:scale-95 z-20 flex items-center gap-2 font-bold text-xs disabled:opacity-30 disabled:cursor-not-allowed",
+                                  deletingChapterId === chapter.id ? "bg-[#9a7b4f] text-[#f3f0eb]" : "bg-red-900 text-white"
+                                )}
+                                title={deletingChapterId === chapter.id ? "Confirmar borrado" : "Borrar capítulo"}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                                {deletingChapterId === chapter.id && <span>¿Borrar?</span>}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {novel.status !== 'Finalizada' && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAnalyze(chapter);
-                              }}
-                              disabled={!!isAnalyzing}
-                              className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold",
-                                isAnalyzing === chapter.id
-                                  ? "bg-[#9a7b4f]/10 text-[#9a7b4f]"
-                                  : "bg-white/5 text-[#6d5a4a] hover:text-[#e8e4df] hover:bg-white/10"
-                              )}
-                            >
-                              {isAnalyzing === chapter.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Sparkles className="w-4 h-4" />
-                              )}
-                              {isAnalyzing === chapter.id ? 'Analizando...' : 'Analizar con Novel'}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setNewChapter({ title: chapter.title, content: chapter.content });
-                                setEditingChapterId(chapter.id);
-                                setIsPrologue(chapter.chapterNumber === 0);
-                                setIsAddingChapter(true);
-                              }}
-                              disabled={!!isAnalyzing}
-                              className="p-3 bg-white/5 text-[#6d5a4a] hover:text-[#e8e4df] hover:bg-white/10 rounded-xl transition-all border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Editar capítulo"
-                            >
-                              <Edit2 className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleDeleteChapter(chapter.id);
-                              }}
-                              disabled={!!isAnalyzing}
-                              className={cn(
-                                "p-3 rounded-xl transition-all shadow-lg hover:scale-110 active:scale-95 z-20 flex items-center gap-2 font-bold text-xs disabled:opacity-30 disabled:cursor-not-allowed",
-                                deletingChapterId === chapter.id ? "bg-[#9a7b4f] text-[#f3f0eb]" : "bg-red-900 text-white"
-                              )}
-                              title={deletingChapterId === chapter.id ? "Confirmar borrado" : "Borrar capítulo"}
-                            >
-                              <Trash2 className="w-5 h-5" />
-                              {deletingChapterId === chapter.id && <span>¿Borrar?</span>}
-                            </button>
-                          </>
-                        )}
+                      <div className="text-[#b0a89e] line-clamp-4 leading-relaxed mb-6 font-serif text-lg italic opacity-80 border-l-4 border-white/5 pl-6">
+                        {chapter.content}
+                      </div>
+                      <div className="flex justify-center mb-6">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReadingChapter(chapter);
+                          }}
+                          className="flex items-center gap-2 px-8 py-3 bg-[#c2a884]/10 text-[#c2a884] rounded-2xl hover:bg-[#c2a884]/20 transition-all font-black text-xs border border-[#c2a884]/20 uppercase tracking-widest shadow-lg shadow-[#c2a884]/5 group-hover:scale-105 active:scale-95"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          Leer Capítulo Completo
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-[#6d5a4a] flex justify-between items-center font-bold tracking-widest uppercase">
+                        <span>
+                          Análisis de Novel: {
+                            isAnalyzing === chapter.id
+                              ? 'En progreso'
+                              : chapter.analyzed
+                                ? 'Completado'
+                                : 'No analizado'
+                          }
+                        </span>
+                        <span>{formatDate(chapter.createdAt)}</span>
                       </div>
                     </div>
-                    <div className="text-[#b0a89e] line-clamp-4 leading-relaxed mb-6 font-serif text-lg italic opacity-80 border-l-4 border-white/5 pl-6">
-                      {chapter.content}
-                    </div>
-                    <div className="flex justify-center mb-6">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setReadingChapter(chapter);
-                        }}
-                        className="flex items-center gap-2 px-8 py-3 bg-[#c2a884]/10 text-[#c2a884] rounded-2xl hover:bg-[#c2a884]/20 transition-all font-black text-xs border border-[#c2a884]/20 uppercase tracking-widest shadow-lg shadow-[#c2a884]/5 group-hover:scale-105 active:scale-95"
-                      >
-                        <BookOpen className="w-4 h-4" />
-                        Leer Capítulo Completo
-                      </button>
-                    </div>
-                    <div className="text-[10px] text-[#6d5a4a] flex justify-between items-center font-bold tracking-widest uppercase">
-                      <span>
-                        Análisis de Novel: {
-                          isAnalyzing === chapter.id
-                            ? 'En progreso'
-                            : chapter.analyzed
-                              ? 'Completado'
-                              : 'No analizado'
-                        }
-                      </span>
-                      <span>{formatDate(chapter.createdAt)}</span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
 
                 {novel.status !== 'Finalizada' && chapters.length > 0 && (
                   <div className="mt-12 flex justify-center">
@@ -1203,11 +1285,15 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
 
                     {/* Feedback Global y Perfil del Escritor */}
                     <section className="bg-[#c2a884]/5 p-10 rounded-[3rem] border border-[#c2a884]/10 space-y-8">
-                      <div className="text-center space-y-2">
-                        <Palette className="w-12 h-12 text-[#c2a884] mx-auto mb-4" />
-                        <h4 className="text-3xl font-black text-[#e8e4df]">Tu Perfil de Escritor</h4>
-                        <div className="inline-block px-6 py-2 bg-[#c2a884] text-[#141210] rounded-full font-black uppercase tracking-widest text-lg shadow-xl shadow-[#c2a884]/20">
-                          {finalReport.writerFeedback.profile}
+                      <div className="text-center space-y-6">
+                        <div>
+                          <Palette className="w-12 h-12 text-[#c2a884] mx-auto mb-4" />
+                          <h4 className="text-3xl font-black text-[#e8e4df]">Tu Perfil de Escritor</h4>
+                        </div>
+                        <div className="bg-[#c2a884] border border-[#c2a884]/20 p-6 md:p-8 rounded-3xl shadow-xl max-w-4xl mx-auto text-left">
+                          <div className="text-[#1a1715] font-bold whitespace-pre-wrap">
+                            {finalReport.writerFeedback.profile}
+                          </div>
                         </div>
                       </div>
 
@@ -1301,8 +1387,15 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
             >
               <div className="p-8 border-b border-white/5 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] font-black text-[#c2a884] uppercase tracking-[0.2em] mb-1">Capítulo {readingChapter.chapterNumber}</div>
-                  <h3 className="text-2xl font-bold text-[#e8e4df]">{readingChapter.title}</h3>
+                  <div className="text-[10px] font-black text-[#c2a884] uppercase tracking-[0.2em] mb-1">
+                    {(() => {
+                      const readingIndex = chapters.findIndex(c => c.id === readingChapter.id);
+                      const hasPrologue = chapters.length > 0 && chapters[0].chapterNumber === 0;
+                      const isThisPrologue = readingChapter.chapterNumber === 0;
+                      const displayNum = hasPrologue ? readingIndex : readingIndex + 1;
+                      return isThisPrologue ? 'Prólogo' : `Capítulo ${displayNum}`;
+                    })()}
+                  </div>                  <h3 className="text-2xl font-bold text-[#e8e4df]">{readingChapter.title}</h3>
                 </div>
                 <button
                   onClick={() => setReadingChapter(null)}

@@ -68,7 +68,8 @@ export async function generateFinalReport(
   const ai = getAIClient();
 
   const prompt = `
-    Eres un Crítico Literario de Élite y un Mentor de Escritores AI. La novela "${novelTitle}" ha finalizado y el autor espera una devolución profunda y profesional.
+    Eres un Crítico Literario de Élite y un Mentor de Escritores AI. La novela "${novelTitle}" ha finalizado y el autor espera tu devolución. 
+    REGLA PRINCIPAL: DIRÍGETE AL AUTOR DIRECTAMENTE EN SEGUNDA PERSONA ("Tú", "Tu estilo", "Has logrado..."). Nunca hables de él en tercera persona.
 
     INFORMACIÓN DISPONIBLE (BASE DE DATOS DEL MUNDO Y MANUSCRITO):
     - Capítulos: ${chapters.map((c) => `Cap ${c.chapterNumber}: ${c.title}`).join(", ")}
@@ -91,20 +92,20 @@ export async function generateFinalReport(
        - Para Personajes: Describe su "Outcome" final (destino definitivo) y su arco de transformación.
        - Para Lugares: Define su estado final y la resolución de cualquier conflicto geográfico o social asociado.
 
-    2. PERFIL DE ESCRITOR (PROFUNDO Y DETALLADO):
-       Toma toda la obra como evidencia para construir un perfil psicológico y técnico del autor. 
-       - No te limites a etiquetas simples. Describe su "Voz Narrativa".
-       - Analiza su relación con el conflicto: ¿Es un autor que confronta a sus personajes o que los protege?
-       - Define su estilo: ¿Es minimalista, recargado, lírico, crudo?
-       - Perfil: Crea una descripción extensa (mínimo 2 párrafos) sobre quién es este autor según su obra.
+    2. PERFIL DE ESCRITOR (PROFUNDO Y DIRECTO):
+       Toma toda la obra como evidencia para construir un perfil psicológico y técnico del usuario. HÁBLALE DE TÚ.
+       - Describe su "Voz Narrativa" (ej: "Tienes una voz...").
+       - Analiza su relación con el conflicto: ¿Confrontas a tus personajes o los proteges?
+       - Define su estilo: ¿Eres minimalista, recargado, lírico, crudo?
+       - Perfil: Crea una descripción extensa (mínimo 2 párrafos) sobre quién es como escritor, mirándolo directamente a los ojos.
 
     3. ANÁLISIS DE EVOLUCIÓN:
-       Compara (basándote en los títulos y el flujo de la obra) cómo empezó la narrativa y cómo terminó. ¿Hubo madurez en el estilo?
+       Compara cómo empezó la narrativa y cómo terminó. ¿Hubo madurez en su estilo? (ej: "Empezaste con timidez, pero al final...").
 
     4. FORTALEZAS Y DESAFÍOS:
-       Sé honesto y constructivo. Identifica 3 fortalezas claras y 3 áreas específicas donde el autor puede subir de nivel en su siguiente obra.
+       Sé honesto y constructivo. Identifica 3 fortalezas claras y 3 áreas específicas donde puede subir de nivel en su siguiente obra. (ej: "Tus puntos fuertes son...").
     
-    Adopta una personalidad de mentor literario prestigioso: cálido pero riguroso, que valora el esfuerzo de terminar un libro pero no teme señalar la verdad artística.
+    Adopta una personalidad de mentor literario prestigioso: cálido pero riguroso. Valora su esfuerzo por terminar el libro, pero no temas señalar la verdad artística.
 
     FORMATO DE RESPUESTA: JSON strictly following the schema.
   `;
