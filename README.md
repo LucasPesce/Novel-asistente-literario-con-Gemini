@@ -1,6 +1,6 @@
-![Estado](https://img.shields.io/badge/Estado-Finalizado-success)
-![Estado](https://img.shields.io/badge/Estado-Desarrollo-orange)
-
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
 # 🦉 Novel: Asistente Literario de IA | Luc Pesce
 
@@ -35,7 +35,7 @@ Asistente de escritura y diseño literario inteligente. Novel analiza automátic
 * **Base de Datos & Auth:** Firebase Firestore, Firebase Authentication (Google Login).
 * **Integración Cloud:** Google Drive v3 API (REST Multipart).
 * **Persistencia Local:** File System Access API, IndexedDB (para persistir accesos de carpetas), localStorage (Caché rápida).
-* **Visuales y Animaciones:** Tailwind CSS v4, Motion (anteriormente Framer Motion), D3.js (Grafo de fuerzas), Mammoth (procesador DOCX), Lucide Icons, React Markdown.
+* **Visuales y Animaciones:** Tailwind CSS v4, Motion (anteriormente Framer Motion), D3.js (Grafo de fuerzas), Lucide Icons, React Markdown.
 
 ---
 
@@ -85,8 +85,8 @@ Una vez que tengas la aplicación abierta en tu navegador local, sigue estos pas
 * **Crear o Importar tu Novela:**
   * Haz clic en el botón **"Nueva Novela"** para iniciar un proyecto desde cero.
   * Elige si deseas vincular una carpeta local en tu PC (Modo Local recomendado) o continuar usando la base de datos del navegador.
-* **Escribir o Importar Manuscritos:**
-  * Crea un capítulo y copia tu texto, o importa un archivo `.docx` o `.txt` y deja que la IA lo fragmente en capítulos automáticamente.
+* **Escribir Manuscritos:**
+  * Crea un capítulo y escribe o pega tu borrador de texto directamente en la interfaz.
   * Haz clic en el botón **"Analizar con Novel"** en cualquier capítulo para ver cómo la IA extrae y actualiza automáticamente tu enciclopedia del mundo.
 
 ---
@@ -107,7 +107,7 @@ src/
 
 ---
 
-## 📁 Autor
+## 👨‍💻 Autor
 
 **Lucas Baquero Lazcano (Luc Pesce)**
 * Analista en Sistemas | Frontend Developer
