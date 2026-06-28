@@ -119,7 +119,7 @@ export default function WorldChat({ entities, chapters, novelTitle }: WorldChatP
   // DISEÑO VISUAL (RENDER)
   // ==========================================
   return (
-    <div className="flex flex-col h-[700px] bg-[#1a1715] rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-[700px] bg-brand-card rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
       
       {/* Cabecera del Chat */}
       <div className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between">
@@ -128,14 +128,14 @@ export default function WorldChat({ entities, chapters, novelTitle }: WorldChatP
             <Sparkles className="w-5 h-5 text-[#9a7b4f]" />
           </div>
           <div>
-            <h3 className="font-bold text-[#e8e4df]">Chat con Novel</h3>
+            <h3 className="font-bold text-brand-text">Chat con Novel</h3>
             <p className="text-[10px] text-[#6d5a4a] font-black uppercase tracking-widest">Amable, Divertido y Constructivo</p>
           </div>
         </div>
       </div>
 
       {/* Historial de la Conversación */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#0e0d0c]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-brand-bg">
         {messages.map((m, i) => (
           <div key={i} className={cn("flex gap-4 max-w-[85%]", m.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto")}>
             <div className={cn(
@@ -146,9 +146,9 @@ export default function WorldChat({ entities, chapters, novelTitle }: WorldChatP
             </div>
             <div className={cn(
               "p-4 rounded-3xl text-sm leading-relaxed shadow-sm",
-              m.role === 'user' ? "bg-[#9a7b4f] text-[#f3f0eb]" : "bg-[#1a1715] border border-white/5 text-[#b0a89e]"
+              m.role === 'user' ? "bg-[#9a7b4f] text-[#f3f0eb]" : "bg-brand-card border border-white/5 text-brand-muted"
             )}>
-              <div className={cn("markdown-body prose prose-sm", m.role === 'user' ? "prose-invert" : "prose-invert text-[#b0a89e]")}>
+              <div className={cn("markdown-body prose prose-sm", m.role === 'user' ? "prose-invert" : "prose-invert text-brand-muted")}>
                 <Markdown>{m.content}</Markdown>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function WorldChat({ entities, chapters, novelTitle }: WorldChatP
             <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#9a7b4f]">
               <Loader2 className="w-5 h-5 animate-spin" />
             </div>
-            <div className="bg-[#1a1715] border border-white/5 p-4 rounded-3xl text-[#6d5a4a] text-sm">
+            <div className="bg-brand-card border border-white/5 p-4 rounded-3xl text-[#6d5a4a] text-sm">
               Analizando tu universo...
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function WorldChat({ entities, chapters, novelTitle }: WorldChatP
       </div>
 
       {/* Formulario de Entrada de Texto */}
-      <form onSubmit={handleSend} className="p-6 bg-[#0e0d0c] border-t border-white/5">
+      <form onSubmit={handleSend} className="p-6 bg-brand-bg border-t border-white/5">
         <div className="relative">
           <input
             type="text"
@@ -178,7 +178,7 @@ export default function WorldChat({ entities, chapters, novelTitle }: WorldChatP
             aria-label="Escribir mensaje para Novel"
             onChange={(e) => setInput(e.target.value)}
             placeholder="Pregunta sobre la trama, personajes o consistencia..."
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-[#e8e4df] focus:outline-none focus:ring-2 focus:ring-[#9a7b4f]/20 placeholder:text-[#6d5a4a] text-sm"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-brand-text focus:outline-none focus:ring-2 focus:ring-[#9a7b4f]/20 placeholder:text-[#6d5a4a] text-sm"
           />
           <button
             type="submit"

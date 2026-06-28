@@ -32,6 +32,8 @@ export interface Chapter {
   createdAt: string;                          // Fecha de creación en formato ISO string
   updatedAt: string;                          // Fecha de actualización en formato ISO string
   analyzed?: boolean;                         // Flag para indicar si la IA ya procesó el capítulo
+  deletedAt?: string;                         // Guardará la fecha de borrado lógico
+
 }
 
 // =========================================================================

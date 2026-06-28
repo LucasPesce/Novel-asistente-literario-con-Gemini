@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, driveProvider } from './lib/firebase';
@@ -27,7 +32,7 @@ export default function App() {
   // ==========================================
   // EFECTOS (EFFECTS)
   // ==========================================
-  
+
   // Recupera y restaura de forma automática la sesión del Modo Local al iniciar la app
   useEffect(() => {
     const savedMode = localStorage.getItem('novel_app_mode');
@@ -101,10 +106,10 @@ export default function App() {
   // ==========================================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0e0d0c]">
+      <div className="min-h-screen flex items-center justify-center bg-brand-bg">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-white/5 border-t-[#9a7b4f] rounded-full animate-spin"></div>
-          <p className="text-[#6d5a4a] font-medium animate-pulse">Cargando tu universo...</p>
+          <div className="w-12 h-12 border-4 border-brand-border border-t-brand-primary rounded-full animate-spin"></div>
+          <p className="text-brand-muted font-medium animate-pulse">Cargando tu universo...</p>
         </div>
       </div>
     );
@@ -114,11 +119,11 @@ export default function App() {
   // DISEÑO VISUAL PRINCIPAL (JSX RENDER)
   // ==========================================
   return (
-    <div className="min-h-screen bg-[#0e0d0c] font-sans text-[#e8e4df] selection:bg-[#9a7b4f]/30 selection:text-[#f3f0eb]">
+    <div className="min-h-screen bg-brand-bg font-sans text-brand-text selection:bg-brand-primary/30 selection:text-brand-text transition-colors duration-300">
       <Navbar onExitLocalMode={handleExitLocalMode} isLocalMode={isLocalMode} />
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        
+
         {/* CASO A: Pantalla de Bienvenida (Sin Autenticar / Sin Modo Local activo) */}
         {!user && !isLocalMode ? (
           <div className="max-w-4xl mx-auto mt-32 text-center space-y-12">
@@ -126,15 +131,15 @@ export default function App() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="inline-flex p-4 bg-[#9a7b4f]/10 rounded-3xl text-[#9a7b4f] mb-4"
+                className="inline-flex p-4 bg-brand-primary/10 rounded-3xl text-brand-primary mb-4"
               >
                 <img src="/logo.png" alt="Logo Grande" className="w-16 h-16 object-contain" />
               </motion.div>
 
-              <h1 className="text-6xl font-black text-[#e8e4df] tracking-tight leading-none">
+              <h1 className="text-6xl font-black text-brand-text tracking-tight leading-none">
                 Novel
               </h1>
-              <p className="text-xl text-[#b0a89e] max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xl text-brand-muted max-w-2xl mx-auto leading-relaxed">
                 Construye tus mundos, Novel te ayudará a desarrollarlos y analizarlos.
               </p>
             </div>
@@ -143,7 +148,7 @@ export default function App() {
               {!showSyncOptions ? (
                 <button
                   onClick={() => setShowSyncOptions(true)}
-                  className="w-full sm:w-auto flex items-center justify-center gap-6 px-12 py-5 bg-[#9a7b4f] text-[#f3f0eb] rounded-3xl hover:bg-[#866a43] transition-all font-black shadow-2xl shadow-[#9a7b4f]/20 group active:scale-95"
+                  className="w-full sm:w-auto flex items-center justify-center gap-6 px-12 py-5 bg-brand-primary text-zinc-950 rounded-3xl hover:bg-brand-secondary transition-all font-black shadow-2xl shadow-brand-primary/20 group active:scale-95 cursor-pointer"
                 >
                   COMENZAR EXPANSIÓN
                 </button>
@@ -151,26 +156,26 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <button
                     onClick={handleEnterLocalMode}
-                    className="flex flex-col items-center gap-2 px-8 py-6 bg-[#1a1715] border border-white/10 text-[#e8e4df] rounded-3xl hover:bg-[#251f1c] transition-all font-bold shadow-xl group w-48"
+                    className="flex flex-col items-center gap-2 px-8 py-6 bg-brand-card border border-brand-border text-brand-text rounded-3xl hover:bg-brand-primary/10 transition-all font-bold shadow-xl group w-48 cursor-pointer"
                   >
-                    <Monitor className="w-8 h-8 text-[#9a7b4f] group-hover:rotate-12 transition-transform mb-2" />
+                    <Monitor className="w-8 h-8 text-brand-primary group-hover:rotate-12 transition-transform mb-2" />
                     <span>MODO LOCAL</span>
-                    <span className="text-[10px] text-[#6d5a4a] font-medium">(Tus archivos en tu PC)</span>
+                    <span className="text-[10px] text-brand-muted font-medium">(Tus archivos en tu PC)</span>
                   </button>
                   <button
                     onClick={login}
-                    className="flex flex-col items-center gap-2 px-8 py-6 bg-[#9a7b4f] text-white rounded-3xl hover:bg-[#866a43] transition-all font-bold shadow-xl shadow-[#9a7b4f]/20 w-48"
+                    className="flex flex-col items-center gap-2 px-8 py-6 bg-brand-primary text-zinc-950 rounded-3xl hover:bg-brand-secondary transition-all font-bold shadow-xl shadow-brand-primary/20 w-48 cursor-pointer"
                   >
-                    <Cloud className="w-8 h-8 text-white/50 mb-2" />
+                    <Cloud className="w-8 h-8 text-zinc-950/60 mb-2" />
                     <span>GOOGLE DRIVE</span>
-                    <span className="text-[10px] text-white/40 font-medium">(Sincronizado en la nube)</span>
+                    <span className="text-[10px] text-zinc-950/60 font-medium">(Sincronizado en la nube)</span>
                   </button>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          
+
           /* CASO B: Panel Principal de Novelas (Autenticado o en Modo Local activo) */
           <AnimatePresence mode="wait">
             {!selectedNovel ? (

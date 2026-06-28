@@ -258,42 +258,157 @@ export const storageService = {
     }
   },
 
-  /**
-   * Remueve un capítulo del manuscrito y reduce el total en la novela.
+/**
+   * Envía un capítulo a la papelera (Soft Delete) marcándolo con la fecha actual.
+   * Reduce el contador de capítulos activos de la novela.
    */
-  deleteChapter: async (
-    isLocal: boolean,
-    novelId: string,
-    chapterId: string,
-  ) => {
-    // --- Flujo Modo Local ---
+  trashChapter: async (isLocal: boolean, novelId: string, chapterId: string) => {
+    const deletedAt = new Date().toISOString();
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find((n) => n.id === novelId);
+      const novel = data.novels.find(n => n.id === novelId);
       if (novel && novel.chapters) {
-        novel.chapters = novel.chapters.filter((c) => c.id !== chapterId);
-        novel.chapterCount = Math.max(0, (novel.chapterCount || 1) - 1);
+        const index = novel.chapters.findIndex(c => c.id === chapterId);
+        if (index > -1) {
+          novel.chapters[index].deletedAt = deletedAt;
+          novel.chapterCount = Math.max(0, (novel.chapterCount || 1) - 1);
+          localService.saveData(data);
+        }
+      }
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'novels', novelId, 'chapters', chapterId), {
+        deletedAt: deletedAt,
+        updatedAt: new Date().toISOString()
+      });
+      await updateDoc(doc(db, 'novels', novelId), {
+        chapterCount: increment(-1),
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/chapters/${chapterId}/trash`);
+    }
+  },
+
+/**
+   * Elimina de forma física e irreversible un capítulo desde la papelera.
+   */
+  deleteChapterPermanently: async (isLocal: boolean, novelId: string, chapterId: string) => {
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.chapters) {
+        novel.chapters = novel.chapters.filter(c => c.id !== chapterId);
         localService.saveData(data);
       }
       return;
     }
 
-    // --- Flujo Modo Conectado (Nube) ---
     try {
-      await deleteDoc(doc(db, "novels", novelId, "chapters", chapterId));
-
-      await updateDoc(doc(db, "novels", novelId), {
-        chapterCount: increment(-1),
-        updatedAt: new Date().toISOString(),
-      });
+      await deleteDoc(doc(db, 'novels', novelId, 'chapters', chapterId));
     } catch (error) {
-      handleFirestoreError(
-        error,
-        OperationType.DELETE,
-        `novels/${novelId}/chapters/${chapterId}`,
-      );
+      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/chapters/${chapterId}/hardDelete`);
     }
   },
+
+  /**
+   * Restaura un capítulo de la papelera, removiendo su marca de borrado 
+   * y asignándole el nuevo número secuencial correspondiente.
+   */
+  restoreChapter: async (isLocal: boolean, novelId: string, chapterId: string, restoredNumber: number) => {
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.chapters) {
+        const index = novel.chapters.findIndex(c => c.id === chapterId);
+        if (index > -1) {
+          delete novel.chapters[index].deletedAt;
+          novel.chapters[index].chapterNumber = restoredNumber;
+          novel.chapterCount = (novel.chapterCount || 0) + 1;
+          // Re-ordenar físicamente tras restaurar
+          novel.chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+          localService.saveData(data);
+        }
+      }
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'novels', novelId, 'chapters', chapterId), {
+        deletedAt: null,
+        chapterNumber: restoredNumber,
+        updatedAt: new Date().toISOString()
+      });
+      await updateDoc(doc(db, 'novels', novelId), {
+        chapterCount: increment(1),
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/chapters/${chapterId}/restore`);
+    }
+  },
+
+  /**
+   * Elimina de golpe todos los capítulos actualmente alojados en la papelera.
+   */
+  emptyTrash: async (isLocal: boolean, novelId: string, trashedChapters: Chapter[]) => {
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.chapters) {
+        const trashedIds = new Set(trashedChapters.map(t => t.id));
+        novel.chapters = novel.chapters.filter(c => !trashedIds.has(c.id));
+        localService.saveData(data);
+      }
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      trashedChapters.forEach(c => {
+        batch.delete(doc(db, 'novels', novelId, 'chapters', c.id));
+      });
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/chapters/emptyTrash`);
+    }
+  },
+
+  /**
+   * Escanea la papelera y destruye permanentemente aquellos capítulos
+   * cuyo borrado lógico (`deletedAt`) supere los 30 días de antigüedad.
+   */
+  pruneExpiredTrash: async (isLocal: boolean, novelId: string, trashedChapters: Chapter[]) => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const expired = trashedChapters.filter(c => c.deletedAt && new Date(c.deletedAt) < thirtyDaysAgo);
+    if (expired.length === 0) return;
+
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.chapters) {
+        const expiredIds = new Set(expired.map(e => e.id));
+        novel.chapters = novel.chapters.filter(c => !expiredIds.has(c.id));
+        localService.saveData(data);
+      }
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      expired.forEach(c => {
+        batch.delete(doc(db, 'novels', novelId, 'chapters', c.id));
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error('Error pruning expired trash:', error);
+    }
+  },
+
   /**
    * Reordena masivamente los capítulos y actualiza sus índices internos.
    */
