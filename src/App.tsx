@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, driveProvider } from './lib/firebase';
@@ -15,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Monitor, Cloud } from 'lucide-react';
 import { localService } from './services/localService';
 import { googleDriveService } from './services/googleDriveService';
+import { useDialog } from './components/DialogContext';
 
 // ==========================================
 // COMPONENTE PRINCIPAL (APPLICATION ROOT)
@@ -23,6 +19,7 @@ export default function App() {
   // ==========================================
   // ESTADOS (STATES)
   // ==========================================
+  const { showAlert, showConfirm } = useDialog();
   const [user, loading] = useAuthState(auth);
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null);
   const [isLocalMode, setIsLocalMode] = useState(false);
@@ -57,11 +54,15 @@ export default function App() {
       setIsLocalMode(true);
       localStorage.setItem('novel_app_mode', 'local');
     } else {
-      const proceed = confirm('No se pudo acceder a una carpeta local (posiblemente por restricciones del navegador o de la vista previa).\n\n¿Deseas continuar en MODO LOCAL usando solo el almacenamiento del navegador?\n(Tus datos no se guardarán como archivos en tu PC, pero se mantendrán en este navegador)');
-      if (proceed) {
-        setIsLocalMode(true);
-        localStorage.setItem('novel_app_mode', 'local');
-      }
+      showConfirm(
+        'Modo Navegador',
+        'No se pudo acceder a una carpeta local (por restricciones del navegador o vista previa).\n\n¿Deseas continuar en MODO LOCAL usando solo la caché del navegador? (Tus datos no se guardarán como archivos en tu PC).',
+        'Continuar',
+        () => {
+          setIsLocalMode(true);
+          localStorage.setItem('novel_app_mode', 'local');
+        }
+      );
     }
   };
 
@@ -86,15 +87,14 @@ export default function App() {
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
         googleDriveService.setAccessToken(credential.accessToken);
-        alert('¡Google Drive vinculado con éxito!');
+        showAlert('Conexión Exitosa', '¡Google Drive vinculado correctamente!', true);
       }
     } catch (error: any) {
       if (error.code === 'auth/popup-blocked') {
-        alert('El navegador bloqueó la ventana emergente. Por favor, actívala para poder ingresar.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        console.log('Login popup cancelled');
-      } else {
+        showAlert('Ventana Bloqueada', 'El navegador bloqueó la ventana emergente. Por favor, actívala para poder ingresar.');
+      } else if (error.code !== 'auth/cancelled-popup-request') {
         console.error('Error de autenticación:', error);
+        showAlert('Error', 'Hubo un problema al intentar iniciar sesión.');
       }
     } finally {
       setIsLoggingIn(false);

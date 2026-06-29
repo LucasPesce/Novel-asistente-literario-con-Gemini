@@ -3,6 +3,7 @@ import { signOut } from 'firebase/auth';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useState } from 'react';
 import { User, Orbit, Key } from 'lucide-react';
+import { useDialog } from '../components/DialogContext';
 
 // ==========================================
 // INTERFACES & PROPS
@@ -20,7 +21,7 @@ export default function Navbar({ isLocalMode, onExitLocalMode }: NavbarProps) {
 
   // Estado para verificar si el usuario tiene un token de Drive guardado localmente
   const [isDriveConnected] = useState(!!localStorage.getItem('google_drive_token'));
-
+  const { showAlert, showPrompt } = useDialog();
   // ==========================================
   // MANEJADORES DE EVENTOS (HANDLERS)
   // ==========================================
@@ -29,16 +30,20 @@ export default function Navbar({ isLocalMode, onExitLocalMode }: NavbarProps) {
    * Abre un prompt para que el usuario configure su propia API Key de Gemini
    * y la guarda de manera segura en el almacenamiento de su navegador.
    */
-  const handleSetApiKey = () => {
+const handleSetApiKey = () => {
     const currentKey = localStorage.getItem('user_gemini_api_key') || '';
-    const newKey = prompt(
-      'Para que la IA funcione, ingresa tu API Key de Google Gemini (consíguela gratis en aistudio.google.com):',
-      currentKey
+    showPrompt(
+      'Configurar Gemini AI',
+      'Ingresa tu API Key de Google Gemini (consíguela gratis en aistudio.google.com). Se guardará de forma segura en tu navegador:',
+      currentKey,
+      'Guardar Llave',
+      (newKey) => {
+        if (newKey.trim()) {
+          localStorage.setItem('user_gemini_api_key', newKey.trim());
+          showAlert('Clave Guardada', 'Tu API Key ha sido configurada con éxito.', true);
+        }
+      }
     );
-    if (newKey !== null) {
-      localStorage.setItem('user_gemini_api_key', newKey.trim());
-      alert('API Key guardada de forma segura en tu navegador.');
-    }
   };
 
   /**
@@ -63,7 +68,7 @@ export default function Navbar({ isLocalMode, onExitLocalMode }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            
+
             {/* BOTÓN API KEY */}
             <button
               onClick={handleSetApiKey}

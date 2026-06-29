@@ -12,6 +12,7 @@ import { analyzeChapter, splitIntoChapters, generateFinalReport, FinalReport } f
 import RelationshipGraph from './RelationshipGraph';
 import WorldChat from './WorldChat';
 import { cn, formatDate } from '../lib/utils';
+import { useDialog } from '../components/DialogContext';
 
 // Importación de Subcomponentes Refactorizados
 import ChapterTab from '../components/ChapterTab';
@@ -72,6 +73,8 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
   const activeChapters = chapters.filter(c => !c.deletedAt);
   const trashedChapters = chapters.filter(c => !!c.deletedAt);
 
+  const { showAlert, showConfirm, showPrompt } = useDialog();
+
   // ==========================================
   // EFECTOS (EFFECTS)
   // ==========================================
@@ -111,15 +114,15 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
       if (isLocalMode) {
         await localService.syncNovelToLocal(novel, chapters, entities, relationships);
       }
-      alert('Sincronización exitosa.');
+      showAlert('Sincronización Exitosa', 'Tus datos han sido respaldados.', true);
     } catch (error: any) {
       console.error(error);
-      alert('Error al sincronizar. Revisa tus permisos y conexión Drive.');
+      showAlert('Error de Sincronización', 'Revisa tus permisos y conexión Drive.');
     } finally {
       setIsSyncing(false);
     }
   };
- 
+
   /**
    * Guarda un nuevo capítulo o actualiza el contenido de uno ya existente.
    */
@@ -170,8 +173,8 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
     setIsAnalyzing(chapter.id);
 
     try {
-      const existingEntitiesSummary = entities.map(e => `${e.name}: ${e.summary}`).join('\n');
-      const existingRelsSummary = relationships.map(r => `${r.sourceName} -> ${r.targetName}: ${r.relationType}`).join('\n');
+      const existingEntitiesSummary = entities.length > 0 ? entities.map(e => `${e.name}: ${e.summary}`).join('\n') : "Ninguna hasta ahora.";
+      const existingRelsSummary = relationships.length > 0 ? relationships.map(r => `${r.sourceName} -> ${r.targetName}: ${r.relationType}`).join('\n') : "Ninguna hasta ahora.";
 
       const result = await analyzeChapter(chapter.content, existingEntitiesSummary, existingRelsSummary);
 
@@ -189,9 +192,10 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
       await storageService.updateChapter(!!isLocalMode, novel.id, chapter.id, { analyzed: true });
     } catch (error: any) {
       if (error.message === 'API_KEY_MISSING') {
-        alert('Falta la API Key de Gemini. Haz clic en el ícono de la llave 🔑 en la barra superior para configurarla.');
+        showAlert('API Key Requerida', 'Falta la API Key de Gemini. Configúrala en la barra superior (🔑).');
       } else {
         console.error(error);
+        showAlert('Error', 'Hubo un problema al analizar el capítulo.');
       }
     } finally {
       setIsAnalyzing(null);
@@ -271,25 +275,27 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
    * Agrega de forma manual una ficha vacía a la enciclopedia.
    */
   const handleManualAddEntity = async (type: EntityType) => {
-    const name = prompt(`Nombre del ${type === 'character' ? 'Personaje' : type === 'location' ? 'Lugar' : 'Elemento'}:`);
-    if (!name) return;
-
-    try {
-      setIsSaving(true);
-      await storageService.addEntity(!!isLocalMode, novel.id, {
-        name,
-        type,
-        summary: 'Creado manualmente.',
-        status: type === 'character' ? 'Vivo' : 'Paz',
-        openQuestions: '',
-        resolvedQuestions: '',
-        isTypeLocked: true
-      });
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSaving(false);
-    }
+    showPrompt(
+      'Nueva Ficha',
+      `Ingresa el nombre del nuevo ${type === 'character' ? 'Personaje' : type === 'location' ? 'Lugar' : 'Elemento'}:`,
+      '',
+      'Crear Ficha',
+      async (name: string) => {
+        if (!name.trim()) return;
+        try {
+          setIsSaving(true);
+          await storageService.addEntity(!!isLocalMode, novel.id, {
+            name, type, summary: 'Creado manualmente.', status: type === 'character' ? 'Vivo' : 'Paz',
+            openQuestions: '', resolvedQuestions: '', isTypeLocked: true
+          });
+        } catch (error) {
+          console.error(error);
+          showAlert('Error', 'No se pudo crear la ficha.');
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    );
   };
 
   /**
@@ -343,18 +349,24 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
   /**
    * Elimina una relación entre fichas.
    */
-  const handleDeleteRelationship = async (relId: string) => {
-    if (!confirm('¿Eliminar esta vinculación?')) return;
-    try {
-      setIsSaving(true);
-      await storageService.deleteRelationship(!!isLocalMode, novel.id, relId);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSaving(false);
-    }
+  const handleDeleteRelationship = (relId: string) => {
+    showConfirm(
+      'Eliminar Vinculación',
+      '¿Estás seguro de que deseas eliminar este vínculo del mapa estelar?',
+      'Eliminar',
+      async () => {
+        try {
+          setIsSaving(true);
+          await storageService.deleteRelationship(!!isLocalMode, novel.id, relId);
+        } catch (error) {
+          console.error(error);
+          showAlert('Error', 'No se pudo eliminar el vínculo.');
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    );
   };
-
   /**
    * Genera el reporte final de cierre y feedback literario de la IA de Gemini.
    */
@@ -366,10 +378,10 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
       setFinalReport(report);
     } catch (error: any) {
       if (error.message === 'API_KEY_MISSING') {
-        alert('Falta la API Key de Gemini. Haz clic en el ícono de la llave 🔑 en la barra superior para configurarla.');
+        showAlert('API Key Requerida', 'Falta la API Key de Gemini. Configúrala en la barra superior (🔑).');
       } else {
         console.error('Error generating final report:', error);
-        alert('Error al generar el reporte final. Inténtalo de nuevo.');
+        showAlert('Error', 'No se pudo generar el reporte final.');
       }
     } finally {
       setIsGeneratingReport(false);
@@ -409,44 +421,46 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
   /**
    * Desbloquea la novela para continuar editando.
    */
-  const handleResumeNovel = async () => {
-    if (!confirm('¿Quieres reanudar la escritura? Esto te permitirá añadir capítulos y editar el mundo de nuevo.')) return;
-    try {
-      setIsSaving(true);
-      const updates = {
-        status: 'En Desarrollo' as const,
-        updatedAt: new Date().toISOString()
-      };
+  const handleResumeNovel = () => {
+    showConfirm(
+      'Reanudar Escritura',
+      '¿Quieres reanudar la escritura? Esto te permitirá añadir capítulos y editar el mundo de nuevo.',
+      'Reanudar',
+      async () => {
+        try {
+          setIsSaving(true);
+          const updates = {
+            status: 'En Desarrollo' as const,
+            updatedAt: new Date().toISOString()
+          };
 
-      if (isLocalMode) {
-        const data = localService.getData();
-        const novelIndex = data.novels.findIndex(n => n.id === novel.id);
-        if (novelIndex > -1) {
-          const updatedNovel = { ...data.novels[novelIndex], ...updates };
-          const updatedNovels = [...data.novels];
-          updatedNovels[novelIndex] = updatedNovel;
+          if (isLocalMode) {
+            const data = localService.getData();
+            const novelIndex = data.novels.findIndex(n => n.id === novel.id);
+            if (novelIndex > -1) {
+              const updatedNovel = { ...data.novels[novelIndex], ...updates };
+              const updatedNovels = [...data.novels];
+              updatedNovels[novelIndex] = updatedNovel;
 
-          await localService.saveData({
-            ...data,
-            novels: updatedNovels
-          });
+              await localService.saveData({ ...data, novels: updatedNovels });
+              setNovel(updatedNovel);
+            }
+          } else {
+            await updateDoc(doc(db, 'novels', novel.id), updates);
+            setNovel(prev => ({ ...prev, ...updates }));
+          }
 
-          setNovel(updatedNovel);
+          setShowFinalReportModal(false);
+          setFinalReport(null);
+          showAlert('Novela Reanudada', 'Has vuelto a la fase de escritura. ¡Mucho éxito!', true);
+        } catch (error: any) {
+          console.error('Resume error:', error);
+          showAlert('Error', `No se pudo reanudar: ${error.message || 'Error desconocido'}`);
+        } finally {
+          setIsSaving(false);
         }
-      } else {
-        await updateDoc(doc(db, 'novels', novel.id), updates);
-        setNovel(prev => ({ ...prev, ...updates }));
       }
-
-      setShowFinalReportModal(false);
-      setFinalReport(null);
-      alert('La novela ha sido reanudada exitosamente.');
-    } catch (error: any) {
-      console.error('Resume error:', error);
-      alert(`Error al reanudar la novela: ${error.message || 'Error desconocido'}`);
-    } finally {
-      setIsSaving(false);
-    }
+    );
   };
 
   /**
@@ -518,19 +532,19 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
         <p class="subtitle">Manuscrito Oficial de Novela</p>
         
         ${activeChapters.map((c, index) => {
-          const hasPrologue = activeChapters.length > 0 && activeChapters[0].chapterNumber === 0;
-          const isThisPrologue = c.chapterNumber === 0;
-          const displayNum = hasPrologue ? index : index + 1;
-          const displayLabel = isThisPrologue ? 'Prólogo' : `Capítulo ${displayNum}`;
+      const hasPrologue = activeChapters.length > 0 && activeChapters[0].chapterNumber === 0;
+      const isThisPrologue = c.chapterNumber === 0;
+      const displayNum = hasPrologue ? index : index + 1;
+      const displayLabel = isThisPrologue ? 'Prólogo' : `Capítulo ${displayNum}`;
 
-          const paragraphsHtml = c.content
-            .split(/\n+/)
-            .map(para => para.trim())
-            .filter(para => para.length > 0)
-            .map(para => `<p>${para}</p>`)
-            .join('\n');
+      const paragraphsHtml = c.content
+        .split(/\n+/)
+        .map(para => para.trim())
+        .filter(para => para.length > 0)
+        .map(para => `<p>${para}</p>`)
+        .join('\n');
 
-          return `
+      return `
           <div class="chapter">
             <h3>${displayLabel}: ${c.title}</h3>
             <div class="content">
@@ -538,7 +552,7 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
             </div>
           </div>
           `;
-        }).join('')}
+    }).join('')}
         
         <div class="footer">Documento generado por Novel. Fecha de exportación: ${new Date().toLocaleDateString()}</div>
       </body>
@@ -564,7 +578,7 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
       } catch (error: any) {
         if (error.name !== 'AbortError') {
           console.error('Error al guardar el manuscrito:', error);
-          alert('Hubo un problema al intentar guardar el archivo.');
+          showAlert('Error de Exportación', 'Hubo un problema al intentar guardar el archivo localmente.');
         }
       }
     } else {
@@ -1063,7 +1077,20 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-brand-border">
-                  <button type="button" onClick={() => { if (confirm('¿Eliminar esta ficha permanentemente?')) { handleDeleteEntity(editingEntity.id); setEditingEntity(null); } }} className="text-red-900 text-[10px] font-black uppercase tracking-widest hover:text-red-700 transition-colors">Eliminar del Mundo</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showConfirm(
+                        'Eliminar Ficha',
+                        '¿Estás seguro de que deseas eliminar esta ficha permanentemente? Perderás toda su información.',
+                        'Eliminar',
+                        () => { handleDeleteEntity(editingEntity.id); setEditingEntity(null); }
+                      );
+                    }}
+                    className="text-brand-error/80 text-[10px] font-black uppercase tracking-widest hover:text-brand-error transition-colors cursor-pointer"
+                  >
+                    Eliminar del Mundo
+                  </button>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setEditingEntity(null)} className="px-6 py-2 text-brand-muted hover:text-brand-text transition-colors">Cancelar</button>
                     <button type="submit" disabled={isSaving} className="flex items-center gap-2 px-8 py-2 bg-brand-primary text-zinc-950 rounded-xl font-bold hover:bg-brand-secondary shadow-xl disabled:opacity-50 transition-all active:scale-95">{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Guardar</button>

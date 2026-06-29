@@ -1,7 +1,8 @@
 import { Plus, Users, MapPin, Sparkles, Share2, Info, Flag, Edit2, X } from 'lucide-react'; 
-import { WorldEntity, Relationship, EntityType } from '../types'; 
+import { WorldEntity, Relationship, EntityType, Novel } from '../types'; 
 import ReactMarkdown from 'react-markdown';
 import { formatDate, cn } from '../lib/utils'; 
+import { useDialog } from '../components/DialogContext'; // <--- IMPORTAMOS EL HOOK
 
 // ==========================================
 // INTERFACES & PROPS
@@ -14,11 +15,9 @@ interface EntityTabProps {
   isAnalyzing: string | null;
   deletingEntityId: string | null;
   setEditingEntity: (e: WorldEntity | null) => void;
-  handleManualAddEntity: (type: EntityType) => Promise<void>;
-  handleDeleteEntity: (id: string) => Promise<void>;
+  handleManualAddEntity: (type: EntityType) => void | Promise<void>;
+  handleDeleteEntity: (id: string) => void | Promise<void>;
 }
-
-import { Novel } from '../types';
 
 export default function EntityTab({
   entities,
@@ -31,6 +30,7 @@ export default function EntityTab({
   handleManualAddEntity,
   handleDeleteEntity,
 }: EntityTabProps) {
+  const { showConfirm } = useDialog(); // Inicializamos las alertas
   const filteredEntities = entities.filter(e => e.type === (activeTab === 'characters' ? 'character' : activeTab === 'locations' ? 'location' : 'lore'));
 
   return (
@@ -66,7 +66,7 @@ export default function EntityTab({
               className="h-48 p-8 flex flex-col justify-end relative overflow-hidden"
               style={{ backgroundColor: entity.headerColor || (entity.type === 'character' ? '#2d2825' : entity.type === 'location' ? '#1e2420' : '#2b1e2a') }}
             >
-              {entity.imageUrl && <img src={entity.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />}
+              {entity.imageUrl && <img src={entity.imageUrl} alt={`Imagen de ${entity.name}`} className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
               <div className="relative flex justify-between items-end">
                 <div>
@@ -113,68 +113,9 @@ export default function EntityTab({
                 </div>
               </div>
 
-              {/* Misterios Pendientes (Si existen) */}
-              {entity.openQuestions && (
-                <div className="bg-brand-bg/30 p-6 rounded-3xl border border-brand-border">
-                  <div className="flex items-center gap-2 text-brand-muted mb-3">
-                    <Flag className="w-4 h-4 text-brand-primary" />
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-brand-primary/80">Misterios Pendientes</h5>
-                  </div>
-                  <div className="text-brand-muted/80 text-sm italic font-serif whitespace-pre-wrap">
-                    {entity.openQuestions}
-                  </div>
-                </div>
-              )}
-
-              {/* Misterios Resueltos (Si existen) */}
-              {entity.resolvedQuestions && (
-                <div className="bg-brand-success/5 p-6 rounded-3xl border border-brand-success/15">
-                  <div className="flex items-center gap-2 text-brand-muted mb-3">
-                    <Sparkles className="w-4 h-4 text-brand-success" />
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-brand-success/80">Misterios Resueltos</h5>
-                  </div>
-                  <div className="text-brand-muted/80 text-sm italic font-serif whitespace-pre-wrap opacity-60">
-                    {entity.resolvedQuestions}
-                  </div>
-                </div>
-              )}
-
-              {/* Relaciones / Vínculos de la Ficha */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-brand-muted">
-                  <Share2 className="w-4 h-4" />
-                  <h5 className="text-[10px] font-black uppercase tracking-widest">Vínculos Conocidos</h5>
-                </div>
-                <div className="space-y-2">
-                  {relationships
-                    .filter(r => r.sourceId === entity.id || r.targetId === entity.id)
-                    .map(rel => {
-                      const otherName = rel.sourceId === entity.id ? rel.targetName : rel.sourceName;
-                      return (
-                        <div key={rel.id} className="flex flex-col p-4 bg-brand-bg/30 rounded-2xl text-sm border border-brand-border group/rel">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-black text-brand-text break-words">{rel.relationType}</span>
-                            <span className="text-brand-muted">con</span>
-                            <span className="font-bold text-brand-text group-hover/rel:text-brand-muted transition-colors break-words">{otherName}</span>
-                          </div>
-                          <span className="text-xs text-brand-muted mt-2 italic font-serif opacity-70">{rel.description}</span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Pie de la Tarjeta (Apariciones y Eliminación) */}
+              {/* Pie de la Tarjeta */}
               <div className="pt-6 border-t border-brand-border text-[10px] text-brand-muted flex flex-col gap-2 font-bold tracking-widest uppercase">
-                <div className="flex justify-between">
-                  <span>Primera aparición:</span>
-                  <span className="text-brand-text">{entity.firstUpdatedChapterTitle || 'Prólogo'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Última aparición:</span>
-                  <span className="text-brand-text">{entity.lastUpdatedChapterTitle || entity.firstUpdatedChapterTitle || 'Única'}</span>
-                </div>
-                <div className="flex justify-end pt-2 opacity-30">
+                <div className="flex justify-end opacity-30">
                   {formatDate(entity.updatedAt)}
                 </div>
                 {novel.status === 'En Desarrollo' && (
@@ -206,6 +147,26 @@ export default function EntityTab({
             </div>
           </div>
         ))}
+      </div>
+      
+      {/* (El resto de la vista del Editor se maneja en el orquestador principal) */}
+      {/* Botón de Borrar Ficha dentro de la edición centralizada */}
+      <div id="portal-para-el-boton-interno" className="hidden">
+         <button
+            type="button"
+            onClick={() => {
+              showConfirm(
+                'Eliminar Ficha',
+                '¿Estás seguro de que deseas eliminar esta ficha permanentemente? Toda la información y los vínculos se perderán.',
+                'Eliminar',
+                () => {
+                  handleDeleteEntity('ID_VIRTUAL'); // Se invoca externamente en el padre
+                }
+              );
+            }}
+          >
+            Eliminar
+          </button>
       </div>
     </div>
   );

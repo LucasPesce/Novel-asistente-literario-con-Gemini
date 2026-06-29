@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { Chapter, Novel } from '../types';
 import { storageService } from '../services/storageService';
+import { useDialog } from '../components/DialogContext'; 
 
 // ==========================================
 // INTERFACES & PROPS
@@ -18,6 +19,10 @@ export default function TrashTab({
   novel,
   isLocalMode,
 }: TrashTabProps) {
+  
+  // Usamos el hook de diálogos estéticos
+  const { showAlert, showConfirm } = useDialog();
+
   return (
     <div className="space-y-6">
       
@@ -30,9 +35,13 @@ export default function TrashTab({
         {trashedChapters.length > 0 && (
           <button
             onClick={() => {
-              if (confirm('¿Estás seguro de que deseas vaciar la papelera? Esta acción destruirá los archivos permanentemente.')) {
-                storageService.emptyTrash(!!isLocalMode, novel.id, trashedChapters);
-              }
+              // IMPLEMENTAMOS SHOW CONFIRM 
+              showConfirm(
+                'Vaciar Papelera',
+                '¿Estás seguro de que deseas vaciar la papelera? Esta acción destruirá los archivos permanentemente.',
+                'Vaciar Papelera',
+                () => storageService.emptyTrash(!!isLocalMode, novel.id, trashedChapters)
+              );
             }}
             className="px-4 py-2 bg-brand-error/10 text-brand-error border border-brand-error/20 rounded-xl hover:bg-brand-error/25 transition-all font-bold text-xs uppercase cursor-pointer"
           >
@@ -65,7 +74,7 @@ export default function TrashTab({
                     <span className="text-[10px] font-black text-brand-error uppercase tracking-widest bg-brand-error/10 border border-brand-error/20 px-3 py-1 rounded-full">
                       Papelera
                     </span>
-                    <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                       Se eliminará de forma automática en {Math.max(1, daysRemaining)} días
                     </span>
                   </div>
@@ -85,7 +94,9 @@ export default function TrashTab({
                         : 1;
 
                       await storageService.restoreChapter(!!isLocalMode, novel.id, chapter.id, chapter.chapterNumber === 0 ? 0 : nextNumber);
-                      alert('Capítulo restaurado exitosamente en el manuscrito.');
+                      
+                      // IMPLEMENTAMOS SHOW ALERT DE ÉXITO
+                      showAlert('Capítulo Restaurado', `El "${chapter.title}" regresó al manuscrito con éxito.`, true);
                     }}
                     className="px-4 py-2 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-xl hover:bg-brand-primary/20 transition-all font-bold text-xs uppercase cursor-pointer"
                   >
@@ -94,10 +105,16 @@ export default function TrashTab({
                   
                   {/* Botón de borrado definitivo */}
                   <button
-                    onClick={async () => {
-                      if (confirm(`¿Estás seguro de que deseas eliminar permanentemente "${chapter.title}"? Esta acción destruirá el manuscrito de por vida de forma irreversible.`)) {
-                        await storageService.deleteChapterPermanently(!!isLocalMode, novel.id, chapter.id);
-                      }
+                    onClick={() => {
+                      // IMPLEMENTAMOS SHOW CONFIRM
+                      showConfirm(
+                        'Eliminar Definitivamente',
+                        `¿Estás seguro de que deseas eliminar permanentemente "${chapter.title}"?\nEsta acción destruirá el manuscrito de forma irreversible.`,
+                        'Destruir Capítulo',
+                        async () => {
+                          await storageService.deleteChapterPermanently(!!isLocalMode, novel.id, chapter.id);
+                        }
+                      );
                     }}
                     className="px-4 py-2 bg-brand-error/10 text-brand-error border border-brand-error/20 rounded-xl hover:bg-brand-error/25 transition-all font-bold text-xs uppercase cursor-pointer"
                   >

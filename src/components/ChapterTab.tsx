@@ -28,7 +28,7 @@ interface ChapterTabProps {
   handleDeleteChapter: (id: string) => Promise<void>;
   handleAddChapter: (e: React.FormEvent) => Promise<void>;
   handleOpenFinalReport: () => Promise<void>;
-  handleResumeNovel: () => Promise<void>;
+  handleResumeNovel: () => void | Promise<void>;
 }
 
 export default function ChapterTab({
@@ -58,18 +58,18 @@ export default function ChapterTab({
 }: ChapterTabProps) {
   return (
     <div className="space-y-6">
-      
+
       {/* Cabecera de la sección de capítulos y controles de barra */}
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-brand-text">Manuscrito ({activeChapters.length})</h3>
         <div className="flex gap-3">
-          
+
           {/* Botón de Sincronización a Drive */}
           {isLocalMode && (
             <button
               onClick={handleSyncToDrive}
               disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-xl hover:bg-brand-primary/20 transition-all font-bold text-xs uppercase cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-card border border-brand-border text-brand-muted rounded-xl hover:bg-brand-primary hover:border-brand-primary hover:text-zinc-950 transition-all font-bold text-xs uppercase cursor-pointer disabled:opacity-50"
             >
               {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
               <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Drive'}</span>
@@ -77,7 +77,7 @@ export default function ChapterTab({
           )}
 
           {novel.status !== 'Finalizada' && (
-            <div className="flex gap-2">                
+            <div className="flex gap-2">
               {/* Botones de creación manual */}
               <button
                 onClick={() => {
@@ -85,7 +85,7 @@ export default function ChapterTab({
                   setIsAddingChapter(true);
                 }}
                 disabled={!!isAnalyzing || activeChapters.some(c => c.chapterNumber === 0)}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg hover:bg-brand-primary/20 transition-all font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-card border border-brand-border text-brand-muted rounded-lg hover:bg-brand-primary hover:border-brand-primary hover:text-zinc-950 transition-all font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Escribir Prólogo
@@ -93,7 +93,7 @@ export default function ChapterTab({
               <button
                 onClick={() => setIsAddingChapter(true)}
                 disabled={!!isAnalyzing}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-zinc-950 hover:bg-brand-secondary transition-colors shadow-lg shadow-brand-primary/20 font-bold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-card border border-brand-border text-brand-muted rounded-lg hover:bg-brand-primary hover:border-brand-primary hover:text-zinc-950 transition-colors shadow-sm hover:shadow-lg hover:shadow-brand-primary/20 font-bold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Escribir Capítulo
@@ -106,7 +106,7 @@ export default function ChapterTab({
             <button
               onClick={handleResumeNovel}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-zinc-950 hover:bg-brand-secondary transition-all font-bold shadow-lg shadow-brand-primary/20 text-xs uppercase tracking-widest cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-card border border-brand-border text-brand-muted rounded-lg hover:bg-brand-primary hover:border-brand-primary hover:text-zinc-950 transition-all font-bold shadow-sm hover:shadow-lg text-xs uppercase tracking-widest cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Reanudar Escritura
@@ -150,10 +150,10 @@ export default function ChapterTab({
             <button
               type="submit"
               disabled={isSaving}
-              className="px-8 py-2 bg-brand-primary text-zinc-950 rounded-xl font-bold hover:bg-brand-secondary shadow-xl disabled:opacity-50 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+              className="px-8 py-2 bg-brand-bg text-brand-muted border border-brand-border rounded-xl font-bold hover:bg-brand-primary hover:text-zinc-950 hover:border-brand-primary shadow-sm hover:shadow-xl disabled:opacity-50 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
               {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {editingChapterId ? 'Guardar Cambios' : 'Guardar Capítulo'}
+              {editingChapterId ? 'Guardar Cambios' : 'Guardar Progreso'}
             </button>
           </div>
         </form>
@@ -183,7 +183,7 @@ export default function ChapterTab({
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {novel.status !== 'Finalizada' && (
                     <>
-                      {/* Botón de Analizar (Dorado Sólido con texto Oscuro para Contraste) */}
+                      {/* Botón de Analizar (Opaco -> Brilla en Oro) */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -194,7 +194,7 @@ export default function ChapterTab({
                           "flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black uppercase text-[10px] tracking-widest cursor-pointer border shadow-sm",
                           isAnalyzing === chapter.id
                             ? "bg-brand-primary/20 text-brand-primary border-brand-primary/30"
-                            : "bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary hover:text-zinc-950 hover:border-brand-primary hover:shadow-md hover:shadow-brand-primary/10"
+                            : "bg-brand-bg text-brand-muted border-brand-border hover:bg-brand-primary hover:text-zinc-950 hover:border-brand-primary hover:shadow-md hover:shadow-brand-primary/20"
                         )}
                       >
                         {isAnalyzing === chapter.id ? (
@@ -205,7 +205,7 @@ export default function ChapterTab({
                         {isAnalyzing === chapter.id ? 'Analizando...' : 'Analizar con Novel'}
                       </button>
 
-                      {/* Botón de Editar Capítulo (Contorno dorado sutil y relleno que se activa al hover) */}
+                      {/* Botón de Editar Capítulo */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -215,17 +215,18 @@ export default function ChapterTab({
                           setIsAddingChapter(true);
                         }}
                         disabled={!!isAnalyzing}
-                        className="p-3 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-zinc-950 rounded-xl transition-all border border-brand-primary/20 cursor-pointer shadow-md"
+                        className="p-3 bg-brand-bg text-brand-muted hover:bg-brand-primary hover:text-zinc-950 hover:border-brand-primary rounded-xl transition-all border border-brand-border cursor-pointer shadow-sm disabled:opacity-30"
                         title="Editar capítulo"
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
-                      {/* Botones de Reordenamiento */}
+
+                      {/* Botones de Reordenamiento (Flechas) */}
                       {index > (activeChapters.some(c => c.chapterNumber === 0) ? 1 : 0) && chapter.chapterNumber !== 0 && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveChapter(index, 'up'); }}
                           disabled={!!isAnalyzing || isSaving}
-                          className="p-3 bg-brand-card/50 text-brand-muted hover:text-brand-text hover:bg-brand-card rounded-xl transition-all border border-brand-border cursor-pointer"
+                          className="p-3 bg-brand-bg text-brand-muted hover:bg-brand-primary hover:text-zinc-950 hover:border-brand-primary rounded-xl transition-all border border-brand-border cursor-pointer shadow-sm disabled:opacity-30"
                           title="Mover arriba"
                         >
                           <ArrowUp className="w-5 h-5" />
@@ -235,12 +236,14 @@ export default function ChapterTab({
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveChapter(index, 'down'); }}
                           disabled={!!isAnalyzing || isSaving}
-                          className="p-3 bg-brand-card/50 text-brand-muted hover:text-brand-text hover:bg-brand-card rounded-xl transition-all border border-brand-border cursor-pointer"
+                          className="p-3 bg-brand-bg text-brand-muted hover:bg-brand-primary hover:text-zinc-950 hover:border-brand-primary rounded-xl transition-all border border-brand-border cursor-pointer shadow-sm disabled:opacity-30"
                           title="Mover abajo"
                         >
                           <ArrowDown className="w-5 h-5" />
                         </button>
                       )}
+
+                      {/* Botón de Borrar (Opaco -> Brilla en Rojo) */}
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -249,10 +252,10 @@ export default function ChapterTab({
                         }}
                         disabled={!!isAnalyzing}
                         className={cn(
-                          "p-3 rounded-xl transition-all shadow-lg hover:scale-110 active:scale-95 z-20 flex items-center gap-2 font-bold text-xs disabled:opacity-30 cursor-pointer",
-                          deletingChapterId === chapter.id 
-                            ? "bg-brand-primary text-zinc-950" 
-                            : "bg-brand-error/20 text-brand-error border border-brand-error/20 hover:bg-brand-error/30"
+                          "p-3 rounded-xl transition-all shadow-sm z-20 flex items-center gap-2 font-bold text-xs disabled:opacity-30 cursor-pointer border",
+                          deletingChapterId === chapter.id
+                            ? "bg-brand-error text-white border-brand-error hover:scale-110 active:scale-95"
+                            : "bg-brand-bg text-brand-muted border-brand-border hover:bg-brand-error hover:text-white hover:border-brand-error hover:scale-110 active:scale-95"
                         )}
                         title={deletingChapterId === chapter.id ? "Confirmar borrado" : "Borrar capítulo"}
                       >
@@ -267,18 +270,19 @@ export default function ChapterTab({
                 {chapter.content}
               </div>
               <div className="flex justify-center mb-6">
+                {/* Botón de Leer Capítulo Completo */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setReadingChapter(chapter);
                   }}
-                  className="flex items-center gap-2 px-8 py-3 bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20 hover:bg-brand-secondary/20 shadow-brand-secondary/5 rounded-2xl transition-all font-black text-xs uppercase tracking-widest cursor-pointer"
+                  className="flex items-center gap-2 px-8 py-3 bg-brand-bg text-brand-muted border border-brand-border hover:bg-brand-secondary hover:border-brand-secondary hover:text-zinc-950 rounded-2xl transition-all font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-lg hover:shadow-brand-secondary/20 active:scale-95 cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4" />
                   Leer Capítulo Completo
                 </button>
               </div>
-              <div className="text-[10px] text-[#6d5a4a] flex justify-between items-center font-bold tracking-widest uppercase">
+              <div className="text-[10px] text-brand-muted flex justify-between items-center font-bold tracking-widest uppercase">
                 <span>
                   Análisis de Novel: {
                     isAnalyzing === chapter.id
@@ -292,18 +296,17 @@ export default function ChapterTab({
               </div>
             </div>
           );
-          
+
         })}
 
-{/* Sección del Reporte Final de Obra */}
+        {/* Sección del Reporte Final de Obra */}
         {novel.status !== 'Finalizada' && activeChapters.length > 0 && (
           <div className="mt-12 flex justify-center">
             <button
               onClick={handleOpenFinalReport}
               className="group flex flex-col items-center gap-4 p-10 bg-brand-card border border-brand-border text-brand-text rounded-[2.5rem] transition-all hover:bg-gradient-to-br hover:from-brand-primary hover:to-brand-secondary hover:text-zinc-950 hover:border-brand-primary/30 hover:scale-105 hover:shadow-2xl hover:shadow-brand-primary/20 cursor-pointer"
             >
-              {/* Círculo sutil en reposo, se vuelve oscuro y rota al hover */}
-              <div className="w-16 h-16 bg-brand-primary/10 text-brand-primary rounded-full flex items-center justify-center shadow-lg group-hover:bg-zinc-950 group-hover:text-brand-primary group-hover:rotate-12 transition-all">
+              <div className="w-16 h-16 bg-brand-bg text-brand-primary rounded-full flex items-center justify-center shadow-lg border border-brand-border group-hover:border-transparent group-hover:bg-zinc-950 group-hover:text-brand-primary group-hover:rotate-12 transition-all">
                 <Flag className="w-8 h-8" />
               </div>
               <div className="text-center">
