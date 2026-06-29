@@ -18,6 +18,7 @@ export interface Novel {
   chapters?: Chapter[];                       // Lista opcional de capítulos (Caché local)
   entities?: WorldEntity[];                   // Lista opcional de fichas del mundo (Caché local)
   relationships?: Relationship[];             // Lista opcional de relaciones (Caché local)
+  deletedAt?: string;
 }
 
 /**
