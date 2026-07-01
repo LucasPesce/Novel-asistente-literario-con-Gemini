@@ -33,17 +33,17 @@
    ========================================================================= */
 :root {
   /* TEMA OSCURO (Predeterminado de tu marca) */
-  --primary: #D1A852;
-  --secondary: #A0813D;
-  --success: #10B981;
+  --primary: #c89e49;
+  --secondary: #907335;
+  --success: #23b4a3;
   --error: #b03a25;
-  --processing: #3B82F6;
+  --processing: #2868cf;
 
-  --bg: #0E0D0C;
-  --bg-card: #1A1715;
+  --bg: #11131e;
+  --bg-card: #03050b;
   --text: #E8E4DF;
   --text-muted: #B0A89E;
-  --border-color: rgba(255, 255, 255, 0.05);
+  --border-color: rgba(46, 54, 79, 0.431);
 }
 
 /* =========================================================================
