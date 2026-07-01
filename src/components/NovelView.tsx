@@ -945,155 +945,157 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
                 <button onClick={() => setEditingEntity(null)} title="Cerrar modal" aria-label="Cerrar modal" className="p-2 bg-black/20 rounded-full text-white hover:bg-black/40 transition-colors"><X /></button>
               </div>
 
-              <form onSubmit={handleUpdateEntity} className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Nombre</label>
-                    <input type="text" value={editingEntity.name} title="Nombre de la entidad" aria-label="Nombre de la entidad" onChange={e => setEditingEntity({ ...editingEntity, name: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+              <form onSubmit={handleUpdateEntity} className="flex flex-col flex-1 overflow-hidden max-h-[calc(90vh-8rem)]">
+                
+                {/* CUERPO DESLIZABLE (SCROLLBAR) */}
+                <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Nombre</label>
+                      <input type="text" value={editingEntity.name} title="Nombre de la entidad" aria-label="Nombre de la entidad" onChange={e => setEditingEntity({ ...editingEntity, name: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Estado</label>
+                      <input type="text" placeholder="Vivo, Muerto, En guerra..." value={editingEntity.status || ''} onChange={e => setEditingEntity({ ...editingEntity, status: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Estado</label>
-                    <input type="text" placeholder="Vivo, Muerto, En guerra..." value={editingEntity.status || ''} onChange={e => setEditingEntity({ ...editingEntity, status: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest text-brand-primary/80">Misterios Pendientes</label>
+                      <textarea placeholder="Misterios, secretos o preguntas sin resolver..." title="Misterios pendientes" aria-label="Misterios pendientes" value={editingEntity.openQuestions || ''} onChange={e => setEditingEntity({ ...editingEntity, openQuestions: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text h-24 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-serif" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest text-brand-success/80">Misterios Resueltos</label>
+                      <textarea placeholder="Misterios que ya tienen respuesta..." title="Misterios resueltos" aria-label="Misterios resueltos" value={editingEntity.resolvedQuestions || ''} onChange={e => setEditingEntity({ ...editingEntity, resolvedQuestions: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text h-24 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-serif" />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest text-brand-primary/80">Misterios Pendientes</label>
-                    <textarea placeholder="Misterios, secretos o preguntas sin resolver..." title="Misterios pendientes" aria-label="Misterios pendientes" value={editingEntity.openQuestions || ''} onChange={e => setEditingEntity({ ...editingEntity, openQuestions: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text h-24 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-serif" />
+                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Resumen (Enciclopedia)</label>
+                    <textarea value={editingEntity.summary} aria-label="Resumen de la enciclopedia" placeholder="Escribe un resumen aquí..." onChange={e => setEditingEntity({ ...editingEntity, summary: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text h-32 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-serif" />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest text-brand-success/80">Misterios Resueltos</label>
-                    <textarea placeholder="Misterios que ya tienen respuesta..." title="Misterios resueltos" aria-label="Misterios resueltos" value={editingEntity.resolvedQuestions || ''} onChange={e => setEditingEntity({ ...editingEntity, resolvedQuestions: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text h-24 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-serif" />
+                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Etiquetas (separadas por coma)</label>
+                    <div className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-xl px-4 py-2">
+                      <Tag className="w-4 h-4 text-brand-muted" />
+                      <input type="text" placeholder={editingEntity.type === 'character' ? "noble, guerrero, secreto..." : editingEntity.type === 'location' ? "lejano, peligroso, místico..." : "criatura, dios, objeto, raza..."} value={editingEntity.tags?.join(', ') || ''} onChange={e => setEditingEntity({ ...editingEntity, tags: e.target.value.split(',').map(s => s.trim()) })} className="flex-1 bg-transparent border-none focus:ring-0 text-brand-text placeholder:text-brand-muted" />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Resumen (Enciclopedia)</label>
-                  <textarea value={editingEntity.summary} aria-label="Resumen de la enciclopedia" placeholder="Escribe un resumen aquí..." onChange={e => setEditingEntity({ ...editingEntity, summary: e.target.value })} className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2 text-brand-text h-32 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-serif" />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Etiquetas (separadas por coma)</label>
-                  <div className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-xl px-4 py-2">
-                    <Tag className="w-4 h-4 text-brand-muted" />
-                    <input type="text" placeholder={editingEntity.type === 'character' ? "noble, guerrero, secreto..." : editingEntity.type === 'location' ? "lejano, peligroso, místico..." : "criatura, dios, objeto, raza..."} value={editingEntity.tags?.join(', ') || ''} onChange={e => setEditingEntity({ ...editingEntity, tags: e.target.value.split(',').map(s => s.trim()) })} className="flex-1 bg-transparent border-none focus:ring-0 text-brand-text placeholder:text-brand-muted" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Color de Cabecera</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {['#2d2825', '#1e2420', '#2b1e2a', '#9a7b4f', '#4f7a9a', '#7a4f9a', '#9a4f4f', '#4f9a7a', 'bg-brand-card'].map(c => (
-                        <button key={c} type="button" onClick={() => setEditingEntity({ ...editingEntity, headerColor: c })} title={`Seleccionar color ${c}`} aria-label={`Seleccionar color ${c}`} className={cn("w-6 h-6 rounded-md border transition-all active:scale-90", (editingEntity.headerColor || '#2d2825') === c ? "border-white scale-110 shadow-lg" : "border-white/10 hover:border-white/30")} style={{ backgroundColor: c }} />
-                      ))}
-                      <div className="relative">
-                        <input type="color" aria-label="Seleccionar color" value={editingEntity.headerColor || '#2d2825'} onChange={e => setEditingEntity({ ...editingEntity, headerColor: e.target.value })} className="w-6 h-6 bg-transparent border-none cursor-pointer opacity-0 absolute inset-0 z-10" />
-                        <div className="w-6 h-6 rounded-md border border-white/20 flex items-center justify-center bg-white/5">
-                          <Palette className="w-3 h-3 text-brand-muted" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Color de Cabecera</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['#2d2825', '#1e2420', '#2b1e2a', '#9a7b4f', '#4f7a9a', '#7a4f9a', '#9a4f4f', '#4f9a7a', 'bg-brand-card'].map(c => (
+                          <button key={c} type="button" onClick={() => setEditingEntity({ ...editingEntity, headerColor: c })} title={`Seleccionar color ${c}`} aria-label={`Seleccionar color ${c}`} className={cn("w-6 h-6 rounded-md border transition-all active:scale-90 cursor-pointer", (editingEntity.headerColor || '#2d2825') === c ? "border-white scale-110 shadow-lg" : "border-white/10 hover:border-white/30")} style={{ backgroundColor: c }} />
+                        ))}
+                        <div className="relative">
+                          <input type="color" aria-label="Seleccionar color" value={editingEntity.headerColor || '#2d2825'} onChange={e => setEditingEntity({ ...editingEntity, headerColor: e.target.value })} className="w-6 h-6 bg-transparent border-none cursor-pointer opacity-0 absolute inset-0 z-10" />
+                          <div className="w-6 h-6 rounded-md border border-white/20 flex items-center justify-center bg-white/5">
+                            <Palette className="w-3 h-3 text-brand-muted" />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Imagen de Portada</label>
-                    <div className="flex gap-2">
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
-                      <label htmlFor="image-upload" className="flex-1 bg-white/5 border border-brand-border rounded-xl px-4 py-2 text-brand-text text-sm text-center cursor-pointer hover:bg-white/10 transition-colors">{editingEntity.imageUrl ? 'Cambiar Foto' : 'Subir Foto'}</label>
-                      {editingEntity.imageUrl && (
-                        <button type="button" onClick={() => setEditingEntity({ ...editingEntity, imageUrl: '' })} className="px-4 py-2 bg-brand-error/10 text-brand-error border border-brand-error/20 rounded-xl text-sm">Quitar</button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-brand-border">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Vinculaciones Directas</label>
-                    <button type="button" onClick={() => setIsAddingRel(!isAddingRel)} className="text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline">{isAddingRel ? 'Cancelar' : '+ Añadir Vínculo'}</button>
-                  </div>
-
-                  {isAddingRel && (
-                    <div className="bg-brand-bg/40 p-4 rounded-2xl border border-brand-border space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <select value={newRelTargetId} onChange={e => setNewRelTargetId(e.target.value)} title="Seleccionar entidad a vincular" className="w-full bg-white/5 border border-brand-border rounded-xl px-4 py-2 text-brand-text text-xs focus:ring-0">
-                          <option value="">Vincular con...</option>
-                          {entities.filter(e => e.id !== editingEntity.id).map(e => <option key={e.id} value={e.id}>{e.name} ({e.type})</option>)}
-                        </select>
-                        <input type="text" placeholder="Tipo: Aliado, Pertenece a, Visto en..." value={newRelType} onChange={e => setNewRelType(e.target.value)} className="w-full bg-white/5 border border-brand-border rounded-xl px-4 py-2 text-brand-text text-xs focus:ring-0" />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Imagen de Portada</label>
+                      <div className="flex gap-2">
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
+                        <label htmlFor="image-upload" className="flex-1 bg-white/5 border border-brand-border rounded-xl px-4 py-2 text-brand-text text-sm text-center cursor-pointer hover:bg-white/10 transition-colors">{editingEntity.imageUrl ? 'Cambiar Foto' : 'Subir Foto'}</label>
+                        {editingEntity.imageUrl && (
+                          <button type="button" onClick={() => setEditingEntity({ ...editingEntity, imageUrl: '' })} className="px-4 py-2 bg-brand-error/10 text-brand-error border border-brand-error/20 rounded-xl text-sm cursor-pointer hover:bg-brand-error/20">Quitar</button>
+                        )}
                       </div>
-                      <button type="button" onClick={handleAddRelationship} disabled={!newRelTargetId || !newRelType} className="w-full py-2 bg-brand-primary/20 text-brand-primary rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/30 disabled:opacity-30">Crear Vinculación</button>
                     </div>
-                  )}
+                  </div>
 
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                    {relationships.filter(r => r.sourceId === editingEntity.id || r.targetId === editingEntity.id).map(rel => {
-                      const isSource = rel.sourceId === editingEntity.id;
-                      const otherName = isSource ? rel.targetName : rel.sourceName;
-                      const isPending = rel.isPending;
+                  <div className="space-y-4 pt-4 border-t border-brand-border">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Vinculaciones Directas</label>
+                      <button type="button" onClick={() => setIsAddingRel(!isAddingRel)} className="text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline cursor-pointer">{isAddingRel ? 'Cancelar' : '+ Añadir Vínculo'}</button>
+                    </div>
 
-                      return (
-                        <div key={rel.id} className={cn("flex items-center justify-between p-3 rounded-xl border transition-all", isPending ? "bg-brand-primary/5 border-brand-primary/20" : "bg-brand-card/20 border-brand-border")}>
-                          <div className="flex-1 flex items-center gap-3">
-                            <div className={cn("w-1.5 h-1.5 rounded-full", isPending ? "bg-[#c2a884] animate-pulse" : "bg-brand-primary")} />
-                            <div className="flex flex-col">
-                              <input type="text" value={rel.relationType} title="Tipo de relación" onChange={async (e) => {
-                                const newValue = e.target.value;
-                                await storageService.updateRelationship(!!isLocalMode, novel.id, rel.id, { relationType: newValue, isUserDefined: true, isPending: false });
-                              }} className="bg-transparent border-none p-0 text-brand-text text-xs font-bold focus:ring-0 w-24 h-4" />
-                              <span className="text-brand-muted text-[10px] uppercase font-black tracking-widest leading-none">{otherName}</span>
+                    {isAddingRel && (
+                      <div className="bg-brand-bg/40 p-4 rounded-2xl border border-brand-border space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <select value={newRelTargetId} onChange={e => setNewRelTargetId(e.target.value)} title="Seleccionar entidad a vincular" className="w-full bg-white/5 border border-brand-border rounded-xl px-4 py-2 text-brand-text text-xs focus:ring-0 cursor-pointer">
+                            <option value="">Vincular con...</option>
+                            {entities.filter(e => e.id !== editingEntity.id).map(e => <option key={e.id} value={e.id}>{e.name} ({e.type})</option>)}
+                          </select>
+                          <input type="text" placeholder="Tipo: Aliado, Pertenece a, Visto en..." value={newRelType} onChange={e => setNewRelType(e.target.value)} className="w-full bg-white/5 border border-brand-border rounded-xl px-4 py-2 text-brand-text text-xs focus:ring-0" />
+                        </div>
+                        <button type="button" onClick={handleAddRelationship} disabled={!newRelTargetId || !newRelType} className="w-full py-2 bg-brand-primary/20 text-brand-primary rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/30 disabled:opacity-30 cursor-pointer">Crear Vinculación</button>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                      {relationships.filter(r => r.sourceId === editingEntity.id || r.targetId === editingEntity.id).map(rel => {
+                        const isSource = rel.sourceId === editingEntity.id;
+                        const otherName = isSource ? rel.targetName : rel.sourceName;
+                        const isPending = rel.isPending;
+
+                        return (
+                          <div key={rel.id} className={cn("flex items-center justify-between p-3 rounded-xl border transition-all", isPending ? "bg-brand-primary/5 border-brand-primary/20" : "bg-brand-card/20 border-brand-border")}>
+                            <div className="flex-1 flex items-center gap-3">
+                              <div className={cn("w-1.5 h-1.5 rounded-full", isPending ? "bg-[#c2a884] animate-pulse" : "bg-brand-primary")} />
+                              <div className="flex flex-col">
+                                <input type="text" value={rel.relationType} title="Tipo de relación" onChange={async (e) => {
+                                  const newValue = e.target.value;
+                                  await storageService.updateRelationship(!!isLocalMode, novel.id, rel.id, { relationType: newValue, isUserDefined: true, isPending: false });
+                                }} className="bg-transparent border-none p-0 text-brand-text text-xs font-bold focus:ring-0 w-24 h-4" />
+                                <span className="text-brand-muted text-[10px] uppercase font-black tracking-widest leading-none">{otherName}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {isPending && (
+                                <button type="button" onClick={async () => {
+                                  await storageService.updateRelationship(!!isLocalMode, novel.id, rel.id, { isPending: false, isUserDefined: true });
+                                }} className="px-2 py-1 bg-[#c2a884]/20 text-[#c2a884] text-[10px] font-black uppercase rounded hover:bg-[#c2a884]/30 cursor-pointer">Confirmar</button>
+                              )}
+                              <button type="button" title="Eliminar relación" onClick={() => handleDeleteRelationship(rel.id)} className="p-1.5 text-brand-error/40 hover:text-brand-error transition-colors cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                          <div className="flex items-center gap-2">
-                            {isPending && (
-                              <button type="button" onClick={async () => {
-                                await storageService.updateRelationship(!!isLocalMode, novel.id, rel.id, { isPending: false, isUserDefined: true });
-                              }} className="px-2 py-1 bg-[#c2a884]/20 text-[#c2a884] text-[10px] font-black uppercase rounded hover:bg-[#c2a884]/30">Confirmar</button>
-                            )}
-                            <button type="button" title="Eliminar relación" onClick={() => handleDeleteRelationship(rel.id)} className="p-1.5 text-brand-error/40 hover:text-brand-error transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest block">Mover Sección (Fijar Tipo)</label>
+                    <div className="flex gap-2">
+                      {[
+                        { type: 'character', label: 'Personajes', icon: Users },
+                        { type: 'location', label: 'Lugares', icon: MapPin },
+                        { type: 'lore', label: 'Mundo', icon: Sparkles }
+                      ].map(opt => (
+                        <button key={opt.type} type="button" onClick={() => setEditingEntity({ ...editingEntity, type: opt.type as any, isTypeLocked: true })} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all font-bold text-[10px] uppercase cursor-pointer", editingEntity.type === opt.type ? "bg-brand-primary border-brand-primary text-zinc-950" : "bg-white/5 border-white/10 text-brand-muted hover:bg-white/10")}><opt.icon className="w-3 h-3" />{opt.label}</button>
+                      ))}
+                    </div>
+                    {editingEntity.isTypeLocked && (
+                      <p className="text-[9px] text-brand-primary/60 font-medium italic">* El tipo ha sido fijado manualmente y no cambiará automáticamente.</p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest block">Mover Sección (Fijar Tipo)</label>
-                  <div className="flex gap-2">
-                    {[
-                      { type: 'character', label: 'Personajes', icon: Users },
-                      { type: 'location', label: 'Lugares', icon: MapPin },
-                      { type: 'lore', label: 'Mundo', icon: Sparkles }
-                    ].map(opt => (
-                      <button key={opt.type} type="button" onClick={() => setEditingEntity({ ...editingEntity, type: opt.type as any, isTypeLocked: true })} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all font-bold text-[10px] uppercase", editingEntity.type === opt.type ? "bg-brand-primary border-brand-primary text-zinc-950" : "bg-white/5 border-white/10 text-brand-muted hover:bg-white/10")}><opt.icon className="w-3 h-3" />{opt.label}</button>
-                    ))}
-                  </div>
-                  {editingEntity.isTypeLocked && (
-                    <p className="text-[9px] text-brand-primary/60 font-medium italic">* El tipo ha sido fijado manualmente y no cambiará automáticamente.</p>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center pt-6 border-t border-brand-border">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showConfirm(
-                        'Eliminar Ficha',
-                        '¿Estás seguro de que deseas eliminar esta ficha permanentemente? Perderás toda su información.',
-                        'Eliminar',
-                        () => { handleDeleteEntity(editingEntity.id); setEditingEntity(null); }
-                      );
-                    }}
-                    className="text-brand-error/80 text-[10px] font-black uppercase tracking-widest hover:text-brand-error transition-colors cursor-pointer"
-                  >
-                    Eliminar del Mundo
-                  </button>
+                {/* PIE DE PÁGINA FIJO CON BOTONES */}
+                <div className="shrink-0 flex justify-between items-center p-6 border-t border-brand-border bg-brand-card">
+                  <button type="button" onClick={() => { 
+                    showConfirm(
+                      'Eliminar Ficha',
+                      '¿Estás seguro de que deseas eliminar esta ficha permanentemente? Toda la información y los vínculos se perderán.',
+                      'Eliminar',
+                      () => {
+                        handleDeleteEntity(editingEntity.id);
+                        setEditingEntity(null);
+                      }
+                    );
+                   }} className="text-brand-error/80 text-[10px] font-black uppercase tracking-widest hover:text-brand-error transition-colors cursor-pointer">Eliminar del Mundo</button>
                   <div className="flex gap-3">
-                    <button type="button" onClick={() => setEditingEntity(null)} className="px-6 py-2 text-brand-muted hover:text-brand-text transition-colors">Cancelar</button>
-                    <button type="submit" disabled={isSaving} className="flex items-center gap-2 px-8 py-2 bg-brand-primary text-zinc-950 rounded-xl font-bold hover:bg-brand-secondary shadow-xl disabled:opacity-50 transition-all active:scale-95">{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Guardar</button>
+                    <button type="button" onClick={() => setEditingEntity(null)} className="px-6 py-2 text-brand-muted hover:text-brand-text transition-colors cursor-pointer">Cancelar</button>
+                    <button type="submit" disabled={isSaving} className="flex items-center gap-2 px-8 py-2 bg-brand-primary text-zinc-950 rounded-xl font-bold hover:bg-brand-secondary shadow-xl disabled:opacity-50 transition-all active:scale-95 cursor-pointer">{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Guardar</button>
                   </div>
                 </div>
               </form>

@@ -24,7 +24,18 @@ export interface FinalReport {
     areasForImprovement: string[];
   };
 }
-
+/**
+ * Limpia el texto devuelto por Gemini, quitando bloques de código Markdown (```json)
+ * para asegurar que JSON.parse() no falle.
+ */
+function parseGeminiResponse<T>(text: string): T {
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\n?/, '');
+    cleaned = cleaned.replace(/\n?```$/, '');
+  }
+  return JSON.parse(cleaned.trim()) as T;
+}
 /**
  * Estructura para la segmentación automática de un texto masivo en capítulos
  */
@@ -216,81 +227,61 @@ export async function analyzeChapter(
     relationships: [{ source, target, type, description }]
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          entities: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                name: { type: Type.STRING },
-                type: {
-                  type: Type.STRING,
-                  enum: ["character", "location", "lore"],
-                },
-                summary: {
-                  type: Type.STRING,
-                  description:
-                    "Resumen detallado de lo que se sabe hasta ahora.",
-                },
-                status: {
-                  type: Type.STRING,
-                  description:
-                    "Estado actual (Vivo, Muerto, En guerra, Objeto: Funcional, Perdido, etc.)",
-                },
-                openQuestions: {
-                  type: Type.STRING,
-                  description: "Lista de misterios o preguntas sin resolver.",
-                },
-                resolvedQuestions: {
-                  type: Type.STRING,
-                  description:
-                    "Misterios que se han resuelto en este capítulo.",
+  let attempts = 3;
+  while (attempts > 0) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: "application/json",
+          // ... (aquí mantén todo el responseSchema que ya tenías)
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              entities: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING },
+                    type: { type: Type.STRING, enum: ["character", "location", "lore"] },
+                    summary: { type: Type.STRING, description: "Resumen detallado de lo que se sabe hasta ahora." },
+                    status: { type: Type.STRING, description: "Estado actual (Vivo, Muerto, En guerra, Objeto: Funcional, Perdido, etc.)" },
+                    openQuestions: { type: Type.STRING, description: "Lista de misterios o preguntas sin resolver." },
+                    resolvedQuestions: { type: Type.STRING, description: "Misterios que se han resuelto en este capítulo." },
+                  },
+                  required: ["name", "type", "summary", "status", "openQuestions"],
                 },
               },
-              required: ["name", "type", "summary", "status", "openQuestions"],
-            },
-          },
-          relationships: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                source: {
-                  type: Type.STRING,
-                  description: "Nombre del personaje o lugar de origen.",
-                },
-                target: {
-                  type: Type.STRING,
-                  description: "Nombre del personaje o lugar de destino.",
-                },
-                type: {
-                  type: Type.STRING,
-                  description:
-                    "Tipo de vínculo (ej: Padre, Amigo, Enemigo, Gobernante de).",
-                },
-                description: {
-                  type: Type.STRING,
-                  description: "Contexto adicional del vínculo.",
+              relationships: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    source: { type: Type.STRING, description: "Nombre del personaje o lugar de origen." },
+                    target: { type: Type.STRING, description: "Nombre del personaje o lugar de destino." },
+                    type: { type: Type.STRING, description: "Tipo de vínculo (ej: Padre, Amigo, Enemigo, Gobernante de)." },
+                    description: { type: Type.STRING, description: "Contexto adicional del vínculo." },
+                  },
+                  required: ["source", "target", "type", "description"],
                 },
               },
-              required: ["source", "target", "type", "description"],
             },
+            required: ["entities", "relationships"],
           },
         },
-        required: ["entities", "relationships"],
-      },
-    },
-  });
+      });
 
-  const text = response.text || "{}";
-  return JSON.parse(text) as AnalysisResult;
+      return parseGeminiResponse<AnalysisResult>(response.text || "{}");
+      
+    } catch (error) {
+      attempts--;
+      if (attempts === 0) throw error; // Si falló 3 veces, lanza el error
+      await new Promise(r => setTimeout(r, 1500)); // Espera 1.5 segundos antes de reintentar
+    }
+  }
+  throw new Error("Analysis failed");
 }
 
 /**
