@@ -72,6 +72,8 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
   // Separación en memoria de Capítulos Activos vs Papelera
   const activeChapters = chapters.filter(c => !c.deletedAt);
   const trashedChapters = chapters.filter(c => !!c.deletedAt);
+  const activeEntities = entities.filter(e => !e.deletedAt);
+  const trashedEntities = entities.filter(e => !!e.deletedAt);
 
   const { showAlert, showConfirm, showPrompt } = useDialog();
 
@@ -92,12 +94,11 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
     return () => unsub();
   }, [novel.id, isLocalMode]);
 
-  // Efecto 2: Limpiador automático de la papelera que destruye capítulos que superen los 30 días
+  // Efecto 2: Limpiador automático invisible para archivos de la papelera con más de 30 días
   useEffect(() => {
-    if (trashedChapters.length > 0) {
-      storageService.pruneExpiredTrash(!!isLocalMode, novel.id, trashedChapters);
-    }
-  }, [chapters, novel.id, isLocalMode]);
+    if (trashedChapters.length > 0) storageService.pruneExpiredTrash(!!isLocalMode, novel.id, trashedChapters);
+    if (trashedEntities.length > 0) storageService.pruneExpiredEntityTrash(!!isLocalMode, novel.id, trashedEntities);
+  }, [chapters, entities, novel.id, isLocalMode]);
 
   // ==========================================
   // MANEJADORES DE EVENTOS (HANDLERS)
@@ -255,19 +256,16 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
   };
 
   /**
-   * Elimina de forma lógica o permanente una ficha de la enciclopedia.
-   */
-  const handleDeleteEntity = async (id: string) => {
-    if (deletingEntityId !== id) {
-      setDeletingEntityId(id);
-      setTimeout(() => setDeletingEntityId(null), 3000);
-      return;
-    }
+     * Envía una ficha a la papelera (Soft Delete).
+     */
+  const handleTrashEntity = async (id: string) => {
     try {
-      await storageService.deleteEntity(!!isLocalMode, novel.id, id);
-      setDeletingEntityId(null);
+      setIsSaving(true);
+      await storageService.trashEntity(!!isLocalMode, novel.id, id);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -712,7 +710,7 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
           {(activeTab === 'characters' || activeTab === 'locations' || activeTab === 'lore') && (
             <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               <EntityTab
-                entities={entities}
+                entities={activeEntities} // <--- PASAMOS SOLO LAS ACTIVAS
                 relationships={relationships}
                 novel={novel}
                 activeTab={activeTab}
@@ -720,7 +718,7 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
                 deletingEntityId={deletingEntityId}
                 setEditingEntity={setEditingEntity}
                 handleManualAddEntity={handleManualAddEntity}
-                handleDeleteEntity={handleDeleteEntity}
+                handleTrashEntity={handleTrashEntity} // <--- NUEVA FUNCIÓN SOFT DELETE
               />
             </motion.div>
           )}
@@ -731,8 +729,9 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
               <TrashTab
                 trashedChapters={trashedChapters}
                 activeChapters={activeChapters}
+                trashedEntities={trashedEntities}
                 novel={novel}
-                isLocalMode={!!isLocalMode} // Corregido a booleano estricto
+                isLocalMode={!!isLocalMode}
               />
             </motion.div>
           )}
@@ -946,7 +945,7 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
               </div>
 
               <form onSubmit={handleUpdateEntity} className="flex flex-col flex-1 overflow-hidden max-h-[calc(90vh-8rem)]">
-                
+
                 {/* CUERPO DESLIZABLE (SCROLLBAR) */}
                 <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
                   <div className="grid grid-cols-2 gap-4">
@@ -988,8 +987,18 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
                     <div className="space-y-4">
                       <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest">Color de Cabecera</label>
                       <div className="flex flex-wrap gap-1.5">
-                        {['#2d2825', '#1e2420', '#2b1e2a', '#9a7b4f', '#4f7a9a', '#7a4f9a', '#9a4f4f', '#4f9a7a', 'bg-brand-card'].map(c => (
-                          <button key={c} type="button" onClick={() => setEditingEntity({ ...editingEntity, headerColor: c })} title={`Seleccionar color ${c}`} aria-label={`Seleccionar color ${c}`} className={cn("w-6 h-6 rounded-md border transition-all active:scale-90 cursor-pointer", (editingEntity.headerColor || '#2d2825') === c ? "border-white scale-110 shadow-lg" : "border-white/10 hover:border-white/30")} style={{ backgroundColor: c }} />
+                        {['transparent', '#2d2825', '#1e2420', '#2b1e2a', '#9a7b4f', '#4f7a9a', '#7a4f9a', '#9a4f4f', '#4f9a7a'].map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setEditingEntity({ ...editingEntity, headerColor: c })}
+                            title={c === 'transparent' ? 'Sin color (Transparente)' : `Seleccionar color ${c}`}
+                            aria-label={c === 'transparent' ? 'Sin color' : `Seleccionar color ${c}`}
+                            className={cn("w-6 h-6 rounded-md border transition-all active:scale-90 flex items-center justify-center overflow-hidden relative", (editingEntity.headerColor || 'transparent') === c ? "border-white scale-110 shadow-lg" : "border-white/10 hover:border-white/30", c === 'transparent' ? "bg-brand-bg" : "")}
+                            style={{ backgroundColor: c === 'transparent' ? undefined : c }}
+                          >
+                            {c === 'transparent' && <div className="w-full h-[2px] bg-brand-error/50 rotate-45 absolute" />}
+                          </button>
                         ))}
                         <div className="relative">
                           <input type="color" aria-label="Seleccionar color" value={editingEntity.headerColor || '#2d2825'} onChange={e => setEditingEntity({ ...editingEntity, headerColor: e.target.value })} className="w-6 h-6 bg-transparent border-none cursor-pointer opacity-0 absolute inset-0 z-10" />
@@ -1082,17 +1091,17 @@ export default function NovelView({ novel: initialNovel, onBack, isLocalMode }: 
 
                 {/* PIE DE PÁGINA FIJO CON BOTONES */}
                 <div className="shrink-0 flex justify-between items-center p-6 border-t border-brand-border bg-brand-card">
-                  <button type="button" onClick={() => { 
+                  <button type="button" onClick={() => {
                     showConfirm(
                       'Eliminar Ficha',
                       '¿Estás seguro de que deseas eliminar esta ficha permanentemente? Toda la información y los vínculos se perderán.',
                       'Eliminar',
                       () => {
-                        handleDeleteEntity(editingEntity.id);
+                        handleTrashEntity(editingEntity.id);
                         setEditingEntity(null);
                       }
                     );
-                   }} className="text-brand-error/80 text-[10px] font-black uppercase tracking-widest hover:text-brand-error transition-colors cursor-pointer">Eliminar del Mundo</button>
+                  }} className="text-brand-error/80 text-[10px] font-black uppercase tracking-widest hover:text-brand-error transition-colors cursor-pointer">Eliminar del Mundo</button>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setEditingEntity(null)} className="px-6 py-2 text-brand-muted hover:text-brand-text transition-colors cursor-pointer">Cancelar</button>
                     <button type="submit" disabled={isSaving} className="flex items-center gap-2 px-8 py-2 bg-brand-primary text-zinc-950 rounded-xl font-bold hover:bg-brand-secondary shadow-xl disabled:opacity-50 transition-all active:scale-95 cursor-pointer">{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Guardar</button>
