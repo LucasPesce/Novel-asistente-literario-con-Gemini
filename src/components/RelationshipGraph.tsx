@@ -266,11 +266,11 @@ export default function RelationshipGraph({ entities, relationships }: GraphProp
   // DISEÑO VISUAL (RENDER)
   // ==========================================
   return (
-    <div className="bg-[var(--border-color)] rounded-[2rem] border border-brand-border overflow-hidden relative shadow-inner">
+    <div className="bg-[var(--bg-card)] rounded-[2rem] border border-brand-border overflow-hidden relative shadow-inner">
       
-      {/* Filtros de Categorías Superiores */}
+{/* Filtros de Categorías Superiores */}
       <div className="absolute top-6 left-6 z-10 flex flex-col gap-3">
-        <div className="flex gap-2 bg-brand-card/80 backdrop-blur-xl p-1.5 rounded-2xl border border-brand-border">
+        <div className="flex gap-2 bg-brand-card/30 backdrop-blur-xl p-1.5 rounded-2xl border border-brand-border">
           {[
             { id: 'all', label: 'Todo', icon: Globe },
             { id: 'characters', label: 'Personajes', icon: Users },
@@ -285,8 +285,8 @@ export default function RelationshipGraph({ entities, relationships }: GraphProp
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer",
                 filterMode === m.id
-                  ? "bg-brand-primary text-zinc-950 shadow-lg"
-                  : "text-brand-muted hover:bg-brand-bg"
+                  ? "bg-brand-primary text-zinc-950 shadow-lg" 
+                  : "bg-brand-border text-brand-text hover:bg-brand-primary hover:text-zinc-950" 
               )}
             >
               <m.icon className="w-3.5 h-3.5" />
@@ -296,8 +296,8 @@ export default function RelationshipGraph({ entities, relationships }: GraphProp
         </div>
 
         {/* Selector de Enfoque Individual (Foco en Nodo) */}
-        <div className="flex items-center gap-3 bg-brand-card/80 backdrop-blur-xl px-4 py-2 rounded-2xl border border-brand-border">
-          <Filter className="w-4 h-4 text-brand-muted" />
+        <div className="flex items-center gap-3 bg-brand-border backdrop-blur-xl px-4 py-2 rounded-2xl border border-brand-border">
+          <Filter className="w-4 h-4 text-brand-text opacity-80" />
           <select
             value={selectedId || ''}
             title="Filtrar por entidad"
@@ -305,8 +305,8 @@ export default function RelationshipGraph({ entities, relationships }: GraphProp
             onChange={(e) => setSelectedId(e.target.value || null)}
             className="bg-transparent border-none text-xs font-bold text-brand-text focus:ring-0 cursor-pointer appearance-none px-2"
           >
-            <option value="" className="bg-brand-card text-brand-muted">Enfoque en...</option>
-            <option value="all" className="bg-brand-card text-brand-muted">Ver Todo el Filtro</option>
+            <option value="" className="bg-brand-card text-brand-text">Enfoque en...</option>
+            <option value="all" className="bg-brand-card text-brand-text">Ver Todo el Filtro</option>
             {entities
               .filter(e => {
                 if (filterMode === 'characters') return e.type === 'character';

@@ -258,17 +258,21 @@ export const storageService = {
     }
   },
 
-/**
+  /**
    * Envía un capítulo a la papelera (Soft Delete) marcándolo con la fecha actual.
    * Reduce el contador de capítulos activos de la novela.
    */
-  trashChapter: async (isLocal: boolean, novelId: string, chapterId: string) => {
+  trashChapter: async (
+    isLocal: boolean,
+    novelId: string,
+    chapterId: string,
+  ) => {
     const deletedAt = new Date().toISOString();
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find(n => n.id === novelId);
+      const novel = data.novels.find((n) => n.id === novelId);
       if (novel && novel.chapters) {
-        const index = novel.chapters.findIndex(c => c.id === chapterId);
+        const index = novel.chapters.findIndex((c) => c.id === chapterId);
         if (index > -1) {
           novel.chapters[index].deletedAt = deletedAt;
           novel.chapterCount = Math.max(0, (novel.chapterCount || 1) - 1);
@@ -279,50 +283,67 @@ export const storageService = {
     }
 
     try {
-      await updateDoc(doc(db, 'novels', novelId, 'chapters', chapterId), {
+      await updateDoc(doc(db, "novels", novelId, "chapters", chapterId), {
         deletedAt: deletedAt,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
-      await updateDoc(doc(db, 'novels', novelId), {
+      await updateDoc(doc(db, "novels", novelId), {
         chapterCount: increment(-1),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/chapters/${chapterId}/trash`);
+      handleFirestoreError(
+        error,
+        OperationType.UPDATE,
+        `novels/${novelId}/chapters/${chapterId}/trash`,
+      );
     }
   },
 
-/**
+  /**
    * Elimina de forma física e irreversible un capítulo desde la papelera.
    */
-  deleteChapterPermanently: async (isLocal: boolean, novelId: string, chapterId: string) => {
+  deleteChapterPermanently: async (
+    isLocal: boolean,
+    novelId: string,
+    chapterId: string,
+  ) => {
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find(n => n.id === novelId);
+      const novel = data.novels.find((n) => n.id === novelId);
       if (novel && novel.chapters) {
-        novel.chapters = novel.chapters.filter(c => c.id !== chapterId);
+        novel.chapters = novel.chapters.filter((c) => c.id !== chapterId);
         localService.saveData(data);
       }
       return;
     }
 
     try {
-      await deleteDoc(doc(db, 'novels', novelId, 'chapters', chapterId));
+      await deleteDoc(doc(db, "novels", novelId, "chapters", chapterId));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/chapters/${chapterId}/hardDelete`);
+      handleFirestoreError(
+        error,
+        OperationType.DELETE,
+        `novels/${novelId}/chapters/${chapterId}/hardDelete`,
+      );
     }
   },
 
   /**
-   * Restaura un capítulo de la papelera, removiendo su marca de borrado 
+   * Restaura un capítulo de la papelera, removiendo su marca de borrado
    * y asignándole el nuevo número secuencial correspondiente.
    */
-  restoreChapter: async (isLocal: boolean, novelId: string, chapterId: string, restoredNumber: number) => {
+  restoreChapter: async (
+    isLocal: boolean,
+    novelId: string,
+    chapterId: string,
+    restoredNumber: number,
+  ) => {
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find(n => n.id === novelId);
+      const novel = data.novels.find((n) => n.id === novelId);
       if (novel && novel.chapters) {
-        const index = novel.chapters.findIndex(c => c.id === chapterId);
+        const index = novel.chapters.findIndex((c) => c.id === chapterId);
         if (index > -1) {
           delete novel.chapters[index].deletedAt;
           novel.chapters[index].chapterNumber = restoredNumber;
@@ -336,30 +357,38 @@ export const storageService = {
     }
 
     try {
-      await updateDoc(doc(db, 'novels', novelId, 'chapters', chapterId), {
+      await updateDoc(doc(db, "novels", novelId, "chapters", chapterId), {
         deletedAt: null,
         chapterNumber: restoredNumber,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
-      await updateDoc(doc(db, 'novels', novelId), {
+      await updateDoc(doc(db, "novels", novelId), {
         chapterCount: increment(1),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/chapters/${chapterId}/restore`);
+      handleFirestoreError(
+        error,
+        OperationType.UPDATE,
+        `novels/${novelId}/chapters/${chapterId}/restore`,
+      );
     }
   },
 
   /**
    * Elimina de golpe todos los capítulos actualmente alojados en la papelera.
    */
-  emptyTrash: async (isLocal: boolean, novelId: string, trashedChapters: Chapter[]) => {
+  emptyTrash: async (
+    isLocal: boolean,
+    novelId: string,
+    trashedChapters: Chapter[],
+  ) => {
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find(n => n.id === novelId);
+      const novel = data.novels.find((n) => n.id === novelId);
       if (novel && novel.chapters) {
-        const trashedIds = new Set(trashedChapters.map(t => t.id));
-        novel.chapters = novel.chapters.filter(c => !trashedIds.has(c.id));
+        const trashedIds = new Set(trashedChapters.map((t) => t.id));
+        novel.chapters = novel.chapters.filter((c) => !trashedIds.has(c.id));
         localService.saveData(data);
       }
       return;
@@ -367,12 +396,16 @@ export const storageService = {
 
     try {
       const batch = writeBatch(db);
-      trashedChapters.forEach(c => {
-        batch.delete(doc(db, 'novels', novelId, 'chapters', c.id));
+      trashedChapters.forEach((c) => {
+        batch.delete(doc(db, "novels", novelId, "chapters", c.id));
       });
       await batch.commit();
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/chapters/emptyTrash`);
+      handleFirestoreError(
+        error,
+        OperationType.DELETE,
+        `novels/${novelId}/chapters/emptyTrash`,
+      );
     }
   },
 
@@ -380,19 +413,25 @@ export const storageService = {
    * Escanea la papelera y destruye permanentemente aquellos capítulos
    * cuyo borrado lógico (`deletedAt`) supere los 30 días de antigüedad.
    */
-  pruneExpiredTrash: async (isLocal: boolean, novelId: string, trashedChapters: Chapter[]) => {
+  pruneExpiredTrash: async (
+    isLocal: boolean,
+    novelId: string,
+    trashedChapters: Chapter[],
+  ) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const expired = trashedChapters.filter(c => c.deletedAt && new Date(c.deletedAt) < thirtyDaysAgo);
+
+    const expired = trashedChapters.filter(
+      (c) => c.deletedAt && new Date(c.deletedAt) < thirtyDaysAgo,
+    );
     if (expired.length === 0) return;
 
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find(n => n.id === novelId);
+      const novel = data.novels.find((n) => n.id === novelId);
       if (novel && novel.chapters) {
-        const expiredIds = new Set(expired.map(e => e.id));
-        novel.chapters = novel.chapters.filter(c => !expiredIds.has(c.id));
+        const expiredIds = new Set(expired.map((e) => e.id));
+        novel.chapters = novel.chapters.filter((c) => !expiredIds.has(c.id));
         localService.saveData(data);
       }
       return;
@@ -400,12 +439,12 @@ export const storageService = {
 
     try {
       const batch = writeBatch(db);
-      expired.forEach(c => {
-        batch.delete(doc(db, 'novels', novelId, 'chapters', c.id));
+      expired.forEach((c) => {
+        batch.delete(doc(db, "novels", novelId, "chapters", c.id));
       });
       await batch.commit();
     } catch (error) {
-      console.error('Error pruning expired trash:', error);
+      console.error("Error pruning expired trash:", error);
     }
   },
 
@@ -583,7 +622,7 @@ export const storageService = {
             lastUpdatedChapterTitle: chapterTitle,
             updatedAt: new Date().toISOString(),
             tags: [],
-            headerColor: extracted.type === "character" ? "#1a1d23" : "#0f172a",
+            headerColor: "#1A1715",
           });
         }
       }
@@ -746,7 +785,7 @@ export const storageService = {
             lastUpdatedChapterTitle: chapterTitle,
             updatedAt: new Date().toISOString(),
             tags: [],
-            headerColor: extracted.type === "character" ? "#1a1d23" : "#0f172a",
+            headerColor: "#1A1715",
           });
         }
       }
@@ -878,54 +917,151 @@ export const storageService = {
     }
   },
 
-  /**
-   * Elimina una ficha de la enciclopedia.
-   * [CASCADA] En Firestore elimina todas las relaciones asociadas a esta ficha mediante un WriteBatch.
+/**
+   * Envía una ficha a la papelera (Soft Delete) marcándola con la fecha actual.
    */
-  deleteEntity: async (isLocal: boolean, novelId: string, entityId: string) => {
-    // --- Flujo Modo Local ---
+  trashEntity: async (isLocal: boolean, novelId: string, entityId: string) => {
+    const deletedAt = new Date().toISOString();
     if (isLocal) {
       const data = localService.getData();
-      const novel = data.novels.find((n) => n.id === novelId);
+      const novel = data.novels.find(n => n.id === novelId);
       if (novel && novel.entities) {
-        novel.entities = novel.entities.filter((e) => e.id !== entityId);
-        novel.relationships = (novel.relationships || []).filter(
-          (r) => r.sourceId !== entityId && r.targetId !== entityId,
-        );
+        const index = novel.entities.findIndex(e => e.id === entityId);
+        if (index > -1) {
+          novel.entities[index].deletedAt = deletedAt;
+          localService.saveData(data);
+        }
+      }
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'novels', novelId, 'entities', entityId), {
+        deletedAt: deletedAt,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/entities/${entityId}/trash`);
+    }
+  },
+
+  /**
+   * Elimina permanentemente una ficha y destruye en cascada todas sus relaciones.
+   */
+  deleteEntityPermanently: async (isLocal: boolean, novelId: string, entityId: string) => {
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.entities) {
+        novel.entities = novel.entities.filter(e => e.id !== entityId);
+        novel.relationships = (novel.relationships || []).filter(r => r.sourceId !== entityId && r.targetId !== entityId);
         localService.saveData(data);
       }
       return;
     }
-
-    // --- Flujo Modo Conectado (Nube) ---
     try {
-      await deleteDoc(doc(db, "novels", novelId, "entities", entityId));
-
-      const relsSnap = await getDocs(
-        query(
-          collection(db, "novels", novelId, "relationships"),
-          where("sourceId", "==", entityId),
-        ),
-      );
-      const relsSnap2 = await getDocs(
-        query(
-          collection(db, "novels", novelId, "relationships"),
-          where("targetId", "==", entityId),
-        ),
-      );
+      await deleteDoc(doc(db, 'novels', novelId, 'entities', entityId));
+      const relsSnap = await getDocs(query(collection(db, 'novels', novelId, 'relationships'), where('sourceId', '==', entityId)));
+      const relsSnap2 = await getDocs(query(collection(db, 'novels', novelId, 'relationships'), where('targetId', '==', entityId)));
       const batch = writeBatch(db);
-      relsSnap.docs.forEach((d) => batch.delete(d.ref));
-      relsSnap2.docs.forEach((d) => batch.delete(d.ref));
+      relsSnap.docs.forEach(d => batch.delete(d.ref));
+      relsSnap2.docs.forEach(d => batch.delete(d.ref));
       await batch.commit();
     } catch (error) {
-      handleFirestoreError(
-        error,
-        OperationType.DELETE,
-        `novels/${novelId}/entities/${entityId}`,
-      );
+      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/entities/${entityId}/hardDelete`);
     }
   },
 
+  /**
+   * Restaura una ficha de la papelera devolviéndola a la enciclopedia.
+   */
+  restoreEntity: async (isLocal: boolean, novelId: string, entityId: string) => {
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.entities) {
+        const index = novel.entities.findIndex(e => e.id === entityId);
+        if (index > -1) {
+          delete novel.entities[index].deletedAt;
+          localService.saveData(data);
+        }
+      }
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'novels', novelId, 'entities', entityId), {
+        deletedAt: null,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/entities/${entityId}/restore`);
+    }
+  },
+
+  /**
+   * Elimina de golpe todas las fichas alojadas en la papelera.
+   */
+  emptyEntityTrash: async (isLocal: boolean, novelId: string, trashedEntities: WorldEntity[]) => {
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.entities) {
+        const trashedIds = new Set(trashedEntities.map(t => t.id));
+        novel.entities = novel.entities.filter(e => !trashedIds.has(e.id));
+        novel.relationships = (novel.relationships || []).filter(r => !trashedIds.has(r.sourceId) && !trashedIds.has(r.targetId));
+        localService.saveData(data);
+      }
+      return;
+    }
+    try {
+      const batch = writeBatch(db);
+      for (const e of trashedEntities) {
+        batch.delete(doc(db, 'novels', novelId, 'entities', e.id));
+        const rels1 = await getDocs(query(collection(db, 'novels', novelId, 'relationships'), where('sourceId', '==', e.id)));
+        const rels2 = await getDocs(query(collection(db, 'novels', novelId, 'relationships'), where('targetId', '==', e.id)));
+        rels1.docs.forEach(d => batch.delete(d.ref));
+        rels2.docs.forEach(d => batch.delete(d.ref));
+      }
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/entities/emptyTrash`);
+    }
+  },
+
+  /**
+   * Limpia las fichas de la papelera que superen los 30 días.
+   */
+  pruneExpiredEntityTrash: async (isLocal: boolean, novelId: string, trashedEntities: WorldEntity[]) => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const expired = trashedEntities.filter(e => e.deletedAt && new Date(e.deletedAt) < thirtyDaysAgo);
+    if (expired.length === 0) return;
+
+    if (isLocal) {
+      const data = localService.getData();
+      const novel = data.novels.find(n => n.id === novelId);
+      if (novel && novel.entities) {
+        const expiredIds = new Set(expired.map(e => e.id));
+        novel.entities = novel.entities.filter(e => !expiredIds.has(e.id));
+        novel.relationships = (novel.relationships || []).filter(r => !expiredIds.has(r.sourceId) && !expiredIds.has(r.targetId));
+        localService.saveData(data);
+      }
+      return;
+    }
+    try {
+      const batch = writeBatch(db);
+      for (const e of expired) {
+        batch.delete(doc(db, 'novels', novelId, 'entities', e.id));
+        const rels1 = await getDocs(query(collection(db, 'novels', novelId, 'relationships'), where('sourceId', '==', e.id)));
+        const rels2 = await getDocs(query(collection(db, 'novels', novelId, 'relationships'), where('targetId', '==', e.id)));
+        rels1.docs.forEach(d => batch.delete(d.ref));
+        rels2.docs.forEach(d => batch.delete(d.ref));
+      }
+      await batch.commit();
+    } catch (error) {
+      console.error('Error pruning expired entity trash:', error);
+    }
+  },
+  
   /**
    * Crea una ficha en la enciclopedia de forma manual.
    */
@@ -950,10 +1086,7 @@ export const storageService = {
           status:
             entity.status || (entity.type === "character" ? "Vivo" : "Paz"),
           tags: [],
-          headerColor:
-            entity.headerColor ||
-            (entity.type === "character" ? "#1a1d23" : "#0f172a"),
-          ...entity,
+          headerColor: entity.headerColor || "#1A1715",
         } as WorldEntity);
         localService.saveData(data);
       }
@@ -1100,7 +1233,7 @@ export const storageService = {
       );
     }
   },
-  
+
   // ==========================================
   // 6. PAPELERA DE NOVELAS (NOVEL TRASH SYSTEM)
   // ==========================================
@@ -1109,7 +1242,7 @@ export const storageService = {
     const deletedAt = new Date().toISOString();
     if (isLocal) {
       const data = localService.getData();
-      const index = data.novels.findIndex(n => n.id === novelId);
+      const index = data.novels.findIndex((n) => n.id === novelId);
       if (index > -1) {
         data.novels[index].deletedAt = deletedAt;
         localService.saveData(data);
@@ -1117,16 +1250,23 @@ export const storageService = {
       return;
     }
     try {
-      await updateDoc(doc(db, 'novels', novelId), { deletedAt, updatedAt: new Date().toISOString() });
+      await updateDoc(doc(db, "novels", novelId), {
+        deletedAt,
+        updatedAt: new Date().toISOString(),
+      });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/trash`);
+      handleFirestoreError(
+        error,
+        OperationType.UPDATE,
+        `novels/${novelId}/trash`,
+      );
     }
   },
 
   restoreNovel: async (isLocal: boolean, novelId: string) => {
     if (isLocal) {
       const data = localService.getData();
-      const index = data.novels.findIndex(n => n.id === novelId);
+      const index = data.novels.findIndex((n) => n.id === novelId);
       if (index > -1) {
         delete data.novels[index].deletedAt;
         localService.saveData(data);
@@ -1134,18 +1274,25 @@ export const storageService = {
       return;
     }
     try {
-      await updateDoc(doc(db, 'novels', novelId), { deletedAt: null, updatedAt: new Date().toISOString() });
+      await updateDoc(doc(db, "novels", novelId), {
+        deletedAt: null,
+        updatedAt: new Date().toISOString(),
+      });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `novels/${novelId}/restore`);
+      handleFirestoreError(
+        error,
+        OperationType.UPDATE,
+        `novels/${novelId}/restore`,
+      );
     }
   },
 
   deleteNovelPermanently: async (isLocal: boolean, novelId: string) => {
     if (isLocal) {
       const data = localService.getData();
-      const novelToDelete = data.novels.find(n => n.id === novelId);
+      const novelToDelete = data.novels.find((n) => n.id === novelId);
       if (novelToDelete) {
-        data.novels = data.novels.filter(n => n.id !== novelId);
+        data.novels = data.novels.filter((n) => n.id !== novelId);
         localService.saveData(data);
       }
       return;
@@ -1153,32 +1300,38 @@ export const storageService = {
     try {
       // Nota: En un entorno real de producción, una Cloud Function debería borrar las subcolecciones.
       // Aquí borramos el documento principal de la novela.
-      await deleteDoc(doc(db, 'novels', novelId));
+      await deleteDoc(doc(db, "novels", novelId));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `novels/${novelId}/hardDelete`);
+      handleFirestoreError(
+        error,
+        OperationType.DELETE,
+        `novels/${novelId}/hardDelete`,
+      );
     }
   },
 
   pruneExpiredNovelTrash: async (isLocal: boolean, trashedNovels: Novel[]) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const expired = trashedNovels.filter(n => n.deletedAt && new Date(n.deletedAt) < thirtyDaysAgo);
+
+    const expired = trashedNovels.filter(
+      (n) => n.deletedAt && new Date(n.deletedAt) < thirtyDaysAgo,
+    );
     if (expired.length === 0) return;
 
     if (isLocal) {
       const data = localService.getData();
-      const expiredIds = new Set(expired.map(e => e.id));
-      data.novels = data.novels.filter(n => !expiredIds.has(n.id));
+      const expiredIds = new Set(expired.map((e) => e.id));
+      data.novels = data.novels.filter((n) => !expiredIds.has(n.id));
       localService.saveData(data);
       return;
     }
     try {
       const batch = writeBatch(db);
-      expired.forEach(n => batch.delete(doc(db, 'novels', n.id)));
+      expired.forEach((n) => batch.delete(doc(db, "novels", n.id)));
       await batch.commit();
     } catch (error) {
-      console.error('Error pruning expired novel trash:', error);
+      console.error("Error pruning expired novel trash:", error);
     }
-  }
+  },
 };
